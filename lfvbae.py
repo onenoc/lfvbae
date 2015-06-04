@@ -5,9 +5,10 @@ import theano.tensor as T
 """This class implements an auto-encoder with Variational Bayes"""
 
 class VA:
-    def __init__(self, dimX, dimTheta, batch_size, L, learning_rate = 0.01):
+    def __init__(self, dimX, dimTheta, n, batch_size, L, learning_rate = 0.01):
         self.dimX = dimX
         self.dimTheta = dimTheta
+        self.n = n
         self.L = L
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -26,7 +27,8 @@ class VA:
         
     def createGradientFunctions(self):
         #create
-        mu,sigma,lambd,x,u,v,f = T.dmatrices("mu","sigma","lambd","X","u","v","f")
+        X = T.dmatrices("X")
+        mu, sigma, u, v, f, lambd = T.dcols("mu", "sigma", "u", "v", "f", "lambd")
         
         negKL = 0.5 * T.sum(1 + 2*T.log(sigma) - mu ** 2 - sigma ** 2)
         theta = mu+sigma*v
@@ -35,10 +37,19 @@ class VA:
         self.negKL = th.function([mu, sigma], negKL)
         self.f = th.function([theta, u], f)
         #the log-likelihood depends on f and lambda
+        
         #need to setup log-likelihood so dependent on all datapoints
-        #this needs the 2 in denominator handled
-        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((x - f) / lambd)**2)
-        self.logLike = th.function([x, mu, sigma, lambd, u, v], logLike)
+        #the reason we can divide like this is because we assume p(x|f) isotropic
+        #logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((x - f) / lambd)**2)
+        #self.logLike = th.function([x, mu, sigma, lambd, u, v], logLike)
+      
+        #m = T.shape(X).eval()[1] 
+        logLike = 0
+        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((X - f) / lambd)**2)
+        #+ T.sum(0.5 * ((X-f.reshape((-1, 1)))/lambd.reshape((-1, 1)))**2)
+        #T.sum((X.T-f).T)
+        #- T.sum(0.5 * ((X.T-f).T/lambd)**2)))
+        self.logLike = th.function([X, mu, sigma, lambd, u, v], logLike)
 
         '''
         logp = negKL + logLike
@@ -48,3 +59,4 @@ class VA:
         self.gradientfunction = th.function(gradvariables + [X, u, v], derivatives, on_unused_input='ignore')
         self.lowerboundfunction = th.function(gradvariables + [X, u, v], logp, on_unused_input='ignore')
         '''
+
