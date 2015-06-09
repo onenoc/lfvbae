@@ -46,17 +46,19 @@ class VA:
         #the log-likelihood depends on f and lambda
         #the reason we can divide like this is because we assume p(x|f) isotropic
         logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((X - f) / lambd)**2)
-        self.logLike = th.function([X, mu, sigma, lambd, u, v], logLike)
 
         logp = negKL + logLike
 
         gradvariables = [mu, sigma, lambd]
+        
+        self.logLike = th.function(gradvariables + [X, u, v], logLike)
 
         derivatives = T.grad(logp,gradvariables)
         derivatives.append(logp)
 
         self.gradientfunction = th.function(gradvariables + [X, u, v], derivatives, on_unused_input='ignore')
         self.lowerboundfunction = th.function(gradvariables + [X, u, v], logp, on_unused_input='ignore')
+        
 
     def iterate(self, data):
         '''''Main method, slices data in minibatches and performs an iteration'''''
@@ -70,10 +72,12 @@ class VA:
         v = np.random.normal(0, 1,[self.dimTheta,1]) 
         u = np.random.normal(0, 1,[self.dimTheta/2,1])
         gradients = self.gradientfunction(*(self.params),X=batch,u=u,v=v)
-        self.lowerbound += gradients[-1]
+        self.lowerbound += gradients[-1] #not sure about this line
+        print "params"
+        print self.params
+        #print self.logLike(*(self.params),X=batch,u=u,v=v)
         for i in xrange(len(self.params)):
             totalGradients[i] += gradients[i]
-        print totalGradients
         return totalGradients
 
     def updateParams(self, totalGradients,N,current_batch_size):
@@ -86,3 +90,10 @@ class VA:
                 prior = 0
 
             self.params[i] += self.learning_rate/np.sqrt(self.h[i]) * (totalGradients[i] - prior*(current_batch_size/N))
+'''
+    def getLowerBound(self, data):
+        lowerbound = 0
+        v = np.random.normal(0, 1,[self.dimTheta,1])
+        u = np.random.normal(0, 1,[self.dimTheta/2,1])
+        return lowerbound
+'''
