@@ -23,13 +23,6 @@ class VA:
         sigma = np.random.normal(0, 1, (self.dimTheta, 1))
         lambd = np.random.normal(0, 1, (self.dimX, 1))
         self.params = [mu, sigma, lambd]
-        self.h = [0.01] * len(self.params)
-
-    def initH(self, batch):
-        totalGradients = self.getGradients(batch)
-        #why are we initializing h with the squared gradients for each param?
-        for i in range(len(totalGradients)):
-            self.h[i] += totalGradients[i]*totalGradients[i]
         
     def createGradientFunctions(self):
         #create
@@ -38,14 +31,21 @@ class VA:
         
         negKL = 0.5 * T.sum(1 + 2*T.log(sigma) - mu ** 2 - sigma ** 2)
         theta = mu+sigma*v
-        f = T.dot(theta[:self.dimTheta/2], theta[self.dimTheta/2:])+u
-        #these are for testing
         self.negKL = th.function([mu, sigma], negKL)
-        self.f = th.function([theta, u], f)
+        W=theta
+        #R=theta[-1]
+        #eps=R*u
+        y=X[:-1,0]
+        X_sim=X[:,1:]
+        f = T.dot(W.T,X_sim)+u
+        #these are for testing
+        
+        self.f = th.function([X, theta, u], f)
         
         #the log-likelihood depends on f and lambda
         #the reason we can divide like this is because we assume p(x|f) isotropic
-        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((X - f) / lambd)**2)
+        
+        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(lambd)) - 0.5 * ((y - f) / lambd)**2)
 
         logp = negKL + logLike
 
@@ -58,7 +58,7 @@ class VA:
 
         self.gradientfunction = th.function(gradvariables + [X, u, v], derivatives, on_unused_input='ignore')
         self.lowerboundfunction = th.function(gradvariables + [X, u, v], logp, on_unused_input='ignore')
-        
+    
 
     def iterate(self, data):
         '''''Main method, slices data in minibatches and performs an iteration'''''
@@ -81,15 +81,8 @@ class VA:
         return totalGradients
 
     def updateParams(self, totalGradients,N,current_batch_size):
-        """Update the parameters, taking into account AdaGrad and a prior"""
         for i in xrange(len(self.params)):
-            self.h[i] += totalGradients[i]*totalGradients[i]
-            if i < 5 or (i < 6 and len(self.params) == 12):
-                prior = 0.5 * self.params[i]
-            else:
-                prior = 0
-
-            self.params[i] += self.learning_rate/np.sqrt(self.h[i]) * (totalGradients[i] - prior*(current_batch_size/N))
+            self.params[i] += self.learning_rate * totalGradients[i]
 '''
     def getLowerBound(self, data):
         lowerbound = 0
