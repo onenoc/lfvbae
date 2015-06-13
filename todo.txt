@@ -1,3 +1,7 @@
-1.  rewrite so that the slicing of X into y and X_sim is not hardcoded like it is
-2.  Add bias term for x, w in linear regression
-3.  make it so that we learn the variance of the error term
+1.  
+2.  rewrite so that the slicing of X into y and X_sim is not hardcoded like it is
+3.  Add bias term for x, w in linear regression
+4.  make it so that we learn the variance of the error term
+
+affine invariant
+

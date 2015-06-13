@@ -1,12 +1,12 @@
 import lfvbae
 import theano as th
 import numpy as np
-
+from matplotlib import pyplot as plt
 #make univariate data, univariate param
+'''
 encoder = lfvbae.VA(1, 2, 2, 1, 10, 1)
-
 encoder.createGradientFunctions()
-
+encoder.initParams()
 #The following test the lower bound for training data
 #negKL between standard normal and standard normal should be 0
 print "this should be 0"
@@ -15,33 +15,41 @@ print encoder.negKL([[0]], [[1]])
 #this should be 5
 #print "this should be 5"
 #[X, theta, u]
-print encoder.f([[10, 2], [10, 1]], [[2], [0]], [[1]])
+print encoder.f([[10, 2, 1]], [[2], [0]], [[1]])
 
 print "these should be approximately -0.92"
 #[mu, sigma, lambd]
-gradvariables = [[[0], [0]], [[1], [1]], [[1]]]
-print encoder.logLike(*(gradvariables), X=[[2, 0], [1, 1]], u=[[1]], v=[[1], [1]])
-print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0], [1, 1]], u=[[1]], v=[[1], [1]])
-
+gradvariables = np.array([[[0], [0]], [[1], [1]], [[1]]])
+u=np.array([[1]])
+v=np.array([[1], [1]])
+print encoder.logLike(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
+print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
 '''
-Y = np.random.normal(0, 1,[1,100])
+#dimX, dimTheta, m, n
+encoder = lfvbae.VA(1, 1, 100, 1)
 encoder.initParams()
-for i in range(100):
-    encoder.iterate(Y)
+encoder.createGradientFunctions()
+
+X = np.random.uniform(0, 1,100)
+e = np.random.normal(0, 0.01,100)
+Y = 2*X+e
+X = np.column_stack((Y,X))
+#we will need to add bias
+for i in range(1000):
+    print encoder.params
+    encoder.iterate(X)
+
+#mu = encoder.params[0]
+
+#X = np.matrix(X)
+#plt.plot(X[:,0],X[:,1],color='red')
+#plt.plot(X[:,0],np.dot(X[:,0],mu),color='blue')
+#plt.show()
 
 #at some point we will have 
 
-#how do we test whether this is right?
-
 #q is normally distributed with mean mu and variance sigma
+#take theta=mu, plot (X,X*theta) in one color,(X,Y) in another color
 
 #generate 100 thetas
-mu = encoder.mu
-sigma = encoder.sigma
-v = np.random.normal(0, 1,[encoder.dimTheta,1])
-thetas = np.zeros(100)
-#for i in range(100):
-
-#setup the w's, x's
-#see if the weights have correct variance
-'''
+#mu = encoder.mu
