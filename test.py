@@ -3,6 +3,8 @@ import theano as th
 import numpy as np
 from matplotlib import pyplot as plt
 #make univariate data, univariate param
+
+#dimX, dimTheta, m, n
 '''
 encoder = lfvbae.VA(1, 2, 2, 1, 10, 1)
 encoder.createGradientFunctions()
@@ -12,6 +14,8 @@ encoder.initParams()
 print "this should be 0"
 print encoder.negKL([[0]], [[1]])
 
+print "this should be -1"
+print encoder.negKL([[1], [1]], [[1], [1]])
 #this should be 5
 #print "this should be 5"
 #[X, theta, u]
@@ -24,21 +28,26 @@ u=np.array([[1]])
 v=np.array([[1], [1]])
 print encoder.logLike(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
 print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
+
 '''
+m = 100
 #dimX, dimTheta, m, n
-encoder = lfvbae.VA(1, 1, 100, 1)
+encoder = lfvbae.VA(1, 1, m, 1)
 encoder.initParams()
 encoder.createGradientFunctions()
 
-X = np.random.uniform(0, 1,100)
-e = np.random.normal(0, 0.01,100)
-Y = 2*X+e
-X = np.column_stack((Y,X))
-#we will need to add bias
-for i in range(1000):
-    print encoder.params
-    encoder.iterate(X)
 
+X = np.random.uniform(0, 100,m)
+#e = np.random.normal(0, 0.01,m)
+Y = 2*X
+X = np.column_stack((Y,X))
+
+#we will need to add bias
+for i in range(1):
+    print "intercept mean, sigma, lambda"
+    print encoder.params[0:3]
+    encoder.iterate(X)
+'''
 #mu = encoder.params[0]
 
 #X = np.matrix(X)
@@ -53,3 +62,4 @@ for i in range(1000):
 
 #generate 100 thetas
 #mu = encoder.mu
+'''
