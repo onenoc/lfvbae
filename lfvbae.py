@@ -10,6 +10,7 @@ class VA:
         self.m = m
         self.n = n
         self.L = L
+        self.iterations = 0
         self.learning_rate = learning_rate
 
     def initParams(self):
@@ -49,6 +50,7 @@ class VA:
     def iterate(self, data):
         '''''Main method, slices data in minibatches and performs an iteration'''''
         totalGradients = self.getGradients(data)
+        self.iterations += 1
         self.updateParams(totalGradients)
 
     def getGradients(self, batch):
@@ -70,9 +72,10 @@ class VA:
         print self.f(*(self.params), X=batch,u=u,v=v)
         print "neg-kl"
         print self.negKL(self.params[0], self.params[1])
-        print "lower bound"
-        print self.lowerboundfunction(*(self.params),X=batch,u=u,v=v)
         '''
+        if self.iterations % 100 == 0:
+            print "lower bound"
+            print self.lowerboundfunction(*(self.params),X=batch,u=u,v=v)
         for i in xrange(len(self.params)):
             totalGradients[i] += gradients[i]
         '''
