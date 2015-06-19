@@ -14,8 +14,8 @@ class VA:
         self.learning_rate = learning_rate
 
     def initParams(self):
-        mu = np.random.normal(10, 1, (self.dimTheta, 1))
-        sigma = np.random.uniform(0, 0.01, (self.dimTheta, 1))
+        mu = np.random.normal(4, 1, (self.dimTheta, 1))
+        sigma = np.random.uniform(0, 3, (self.dimTheta, 1))
         lambd = np.matrix(np.random.uniform(0.95, 1.05))
         self.params = [mu, sigma, lambd]
         

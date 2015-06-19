@@ -33,19 +33,19 @@ print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1
 
 m = 500
 #dimX, dimTheta, m, n
-encoder = lfvbae.VA(2, 2, m, 1, learning_rate=0.00000001)
+encoder = lfvbae.VA(2, 2, m, 1, learning_rate=0.000001)
 encoder.initParams()
 encoder.createGradientFunctions()
 
 
 X = np.random.uniform(0, 100,(m, 2))
 e = np.random.normal(0, 0.001,m)
-Y = np.dot(X,np.array([2,1]))
+Y = np.dot(X,np.array([2,1]))+e
 X = np.column_stack((Y,X))
 #print "data y,x"
 #print X
 #we will need to add bias
-for i in range(50000):
+for i in range(1000):
     if i%100==0:
         print "intercept mean, sigma, lambda"
         print encoder.params
