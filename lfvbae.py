@@ -15,8 +15,8 @@ class VA:
 
     def initParams(self):
         mu = np.random.normal(4, 1, (self.dimTheta, 1))
-        logSigma = np.random.uniform(1, 3, (self.dimTheta, 1))
-        lambd = np.matrix(np.random.uniform(0.95, 1.05))
+        logSigma = np.random.uniform(0.0125, 1, (self.dimTheta, 1))
+        lambd = np.matrix(np.random.uniform(1, 10))
         self.params = [mu, logSigma, lambd]
         
     def createGradientFunctions(self):
@@ -36,7 +36,7 @@ class VA:
         
         logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(abs(lambd))) - 0.5 * ((y-f)/(lambd))**2)
 
-        logp = negKL + logLike
+        logp = (negKL + logLike)/self.m
         
         self.negKL = th.function([mu, logSigma], negKL, on_unused_input='ignore')
         self.f = th.function(gradvariables + [X,u,v], f, on_unused_input='ignore')
