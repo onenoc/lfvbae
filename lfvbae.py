@@ -15,30 +15,30 @@ class VA:
 
     def initParams(self):
         mu = np.random.normal(4, 1, (self.dimTheta, 1))
-        sigma = np.random.uniform(0, 3, (self.dimTheta, 1))
+        logSigma = np.random.uniform(1, 3, (self.dimTheta, 1))
         lambd = np.matrix(np.random.uniform(0.95, 1.05))
-        self.params = [mu, sigma, lambd]
+        self.params = [mu, logSigma, lambd]
         
     def createGradientFunctions(self):
         #create
         X = T.dmatrices("X")
-        mu, sigma, u, v, f, R = T.dcols("mu", "sigma", "u", "v", "f", "R")
+        mu, logSigma, u, v, f, R = T.dcols("mu", "logSigma", "u", "v", "f", "R")
         lambd = T.patternbroadcast(T.dmatrix("lambd"),[1,1])
-        negKL = 0.5 * T.sum(1 + 2*T.log(abs(sigma)) - mu ** 2 - sigma ** 2)
-        theta = mu+sigma*v
+        negKL = 0.5 * T.sum(1 + 2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
+        theta = mu+T.exp(logSigma)*v
         W=theta
         y=X[:,0]
         X_sim=X[:,1:]
         f = (T.dot(X_sim,W)+u).flatten()
         
-        gradvariables = [mu, sigma, lambd]
+        gradvariables = [mu, logSigma, lambd]
         
         
         logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(abs(lambd))) - 0.5 * ((y-f)/(lambd))**2)
 
         logp = negKL + logLike
         
-        self.negKL = th.function([mu, sigma], negKL, on_unused_input='ignore')
+        self.negKL = th.function([mu, logSigma], negKL, on_unused_input='ignore')
         self.f = th.function(gradvariables + [X,u,v], f, on_unused_input='ignore')
         self.logLike = th.function(gradvariables + [X, u, v], logLike,on_unused_input='ignore')
         derivatives = T.grad(logp,gradvariables)
@@ -57,7 +57,7 @@ class VA:
         totalGradients = [0] * len(self.params)
         #in our case, we only use a single sample
         v = np.random.normal(0, 1,[self.dimTheta,1]) 
-        u = np.random.normal(0, 0.001,[self.m,1])
+        u = np.random.normal(0, 0.01,[self.m,1])
         gradients = self.gradientfunction(*(self.params),X=batch,u=u,v=v)
         '''
         print "log-likelihood"

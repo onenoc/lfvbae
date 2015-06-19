@@ -3,54 +3,51 @@ import theano as th
 import numpy as np
 from matplotlib import pyplot as plt
 #make univariate data, univariate param
-
-#dimX, dimTheta, m, n
 '''
+#dimX, dimTheta, m, n
 encoder = lfvbae.VA(1, 2, 2, 1, 10, 1)
 encoder.createGradientFunctions()
 encoder.initParams()
 #The following test the lower bound for training data
 #negKL between standard normal and standard normal should be 0
 print "this should be 0"
-print encoder.negKL([[0]], [[1]])
+print encoder.negKL([[0]], [[np.log(1)]])
 
 print "this should be -1"
-print encoder.negKL([[1], [1]], [[1], [1]])
+print encoder.negKL([[1], [1]], [[np.log(1)], [np.log(1)]])
 #this should be 5
 #print "this should be 5"
 #[X, theta, u]
-print encoder.f([[10, 2, 1]], [[2], [0]], [[1]])
+#print encoder.f([[10, 2, 1]], [[2], [0]], [[1]])
 
 print "these should be approximately -0.92"
-#[mu, sigma, lambd]
-gradvariables = np.array([[[0], [0]], [[1], [1]], [[1]]])
+#[mu, logSigma, lambd]
+gradvariables = np.array([[[0], [0]], [[np.log(1)], [np.log(1)]], [[1]]])
 u=np.array([[1]])
 v=np.array([[1], [1]])
 print encoder.logLike(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
 print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
-
 '''
 
 m = 500
 #dimX, dimTheta, m, n
-encoder = lfvbae.VA(2, 2, m, 1, learning_rate=0.000001)
+encoder = lfvbae.VA(2, 2, m, 1, learning_rate=0.0000001)
 encoder.initParams()
 encoder.createGradientFunctions()
 
 
 X = np.random.uniform(0, 100,(m, 2))
-e = np.random.normal(0, 0.001,m)
+e = np.random.normal(0, 0.01,m)
 Y = np.dot(X,np.array([2,1]))+e
 X = np.column_stack((Y,X))
 #print "data y,x"
 #print X
 #we will need to add bias
-for i in range(1000):
+for i in range(50000):
     if i%100==0:
         print "intercept mean, sigma, lambda"
         print encoder.params
     encoder.iterate(X)
-
 '''
 mu = encoder.params[0]
 print mu
