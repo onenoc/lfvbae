@@ -2,7 +2,6 @@ import numpy as np
 import theano as th
 import theano.tensor as T
 
-
 class VA:
     def __init__(self, dimX, dimTheta, m, n, L=1, learning_rate = 0.01):
         self.dimX = dimX
@@ -15,8 +14,8 @@ class VA:
 
     def initParams(self):
         mu = np.random.normal(4, 1, (self.dimTheta, 1))
-        logSigma = np.random.uniform(0.0125, 1, (self.dimTheta, 1))
-        lambd = np.matrix(np.random.uniform(1, 10))
+        logSigma = np.random.uniform(1, 1, (self.dimTheta, 1))
+        lambd = np.matrix(np.random.uniform(1, 40))
         self.params = [mu, logSigma, lambd]
         
     def createGradientFunctions(self):
@@ -55,9 +54,8 @@ class VA:
 
     def getGradients(self, batch):
         totalGradients = [0] * len(self.params)
-        #in our case, we only use a single sample
         v = np.random.normal(0, 1,[self.dimTheta,1]) 
-        u = np.random.normal(0, 0.01,[self.m,1])
+        u = np.random.normal(0, 0.1,[self.m,1])
         gradients = self.gradientfunction(*(self.params),X=batch,u=u,v=v)
         '''
         print "log-likelihood"
