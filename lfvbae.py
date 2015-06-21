@@ -15,14 +15,14 @@ class VA:
     def initParams(self):
         mu = np.random.normal(2, 1, (self.dimTheta, 1))
         logSigma = np.random.uniform(0.5, 1, (self.dimTheta, 1))
-        lambd = np.matrix(np.random.uniform(1, 40))
-        self.params = [mu, logSigma, lambd]
+        logLambd = np.matrix(np.random.uniform(1, 40))
+        self.params = [mu, logSigma, logLambd]
         
     def createGradientFunctions(self):
         #create
         X = T.dmatrices("X")
         mu, logSigma, u, v, f, R = T.dcols("mu", "logSigma", "u", "v", "f", "R")
-        lambd = T.patternbroadcast(T.dmatrix("lambd"),[1,1])
+        logLambd = T.patternbroadcast(T.dmatrix("logLambd"),[1,1])
         negKL = 0.5 * T.sum(1 + 2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         theta = mu+T.exp(logSigma)*v
         W=theta
@@ -30,10 +30,10 @@ class VA:
         X_sim=X[:,1:]
         f = (T.dot(X_sim,W)+u).flatten()
         
-        gradvariables = [mu, logSigma, lambd]
+        gradvariables = [mu, logSigma, logLambd]
         
         
-        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + T.log(abs(lambd))) - 0.5 * ((y-f)/(lambd))**2)
+        logLike = T.sum(-(0.5 * np.log(2 * np.pi) + logLambd) - 0.5 * ((y-f)/(T.exp(logLambd)))**2)
 
         logp = (negKL + logLike)/self.m
         
