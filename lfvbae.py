@@ -11,11 +11,12 @@ class VA:
         self.L = L
         self.iterations = 0
         self.learning_rate = learning_rate
+        self.lowerBounds = []
 
     def initParams(self):
-        mu = np.random.normal(2, 1, (self.dimTheta, 1))
-        logSigma = np.random.uniform(0.5, 1, (self.dimTheta, 1))
-        logLambd = np.matrix(np.random.uniform(1, 40))
+        mu = np.random.normal(5, 10, (self.dimTheta, 1))
+        logSigma = np.random.uniform(-10, 10, (self.dimTheta, 1))
+        logLambd = np.matrix(np.random.uniform(0, 10))
         self.params = [mu, logSigma, logLambd]
         
     def createGradientFunctions(self):
@@ -55,7 +56,7 @@ class VA:
     def getGradients(self, batch):
         totalGradients = [0] * len(self.params)
         v = np.random.normal(0, 1,[self.dimTheta,1]) 
-        u = np.random.normal(0, 0.1,[self.m,1])
+        u = np.random.normal(0, 1,[self.m,1])
         gradients = self.gradientfunction(*(self.params),X=batch,u=u,v=v)
         '''
         print "log-likelihood"
@@ -74,6 +75,7 @@ class VA:
         if self.iterations % 100 == 0:
             print "lower bound"
             print self.lowerboundfunction(*(self.params),X=batch,u=u,v=v)
+        self.lowerBounds.append(self.lowerboundfunction(*(self.params),X=batch,u=u,v=v))
         for i in xrange(len(self.params)):
             totalGradients[i] += gradients[i]
         '''
