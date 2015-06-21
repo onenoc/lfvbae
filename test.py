@@ -31,35 +31,34 @@ print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1
 
 m = 1000
 #dimX, dimTheta, m, n
-encoder = lfvbae.VA(2, 2, m, 1, learning_rate=0.05)
+n=1
+encoder = lfvbae.VA(n, n, m, 1, learning_rate=0.05)
 encoder.initParams()
 encoder.createGradientFunctions()
 
-X = np.random.uniform(0, 100,(m, 2))
-e = np.random.normal(0, 1,(m,1))
-dot = np.reshape(np.dot(X,np.array([2,2])), (m,1))
+X = np.random.uniform(0, 10,(m, n))
+e = np.random.normal(0, 0.1,(m,1))
+dot = np.reshape(np.dot(X,np.array([1])), (m,1))
 Y = dot+e
 #Y = 2*X+e
 X = np.column_stack((Y,X))
 #print "data y,x"
 #print X
 #we will need to add bias
-for i in range(1000):
+for i in range(5000):
     if i%100==0:
         print "intercept mean, sigma, lambda"
         print encoder.params
     encoder.iterate(X)
 '''
-
 #mu = encoder.params[0]
 #print mu
 X = np.matrix(X)
 plt.plot(X[:,1],X[:,0],color='red')
 #plt.plot(X[:,1],np.dot(X[:,1],mu),color='blue')
 plt.show()
-'''
 #at some point we will have 
-
+'''
 #q is normally distributed with mean mu and variance sigma
 #take theta=mu, plot (X,X*theta) in one color,(X,Y) in another color
 
