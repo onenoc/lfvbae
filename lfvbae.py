@@ -14,9 +14,10 @@ class VA:
         self.lowerBounds = []
 
     def initParams(self):
-        mu = np.random.normal(5, 10, (self.dimTheta, 1))
+        mu = np.random.normal(10, 10, (self.dimTheta, 1))
         logSigma = np.random.uniform(-10, 10, (self.dimTheta, 1))
         logLambd = np.matrix(np.random.uniform(0, 10))
+        logR = np.matrix(np.random.uniform(1, 5))
         self.params = [mu, logSigma, logLambd]
         
     def createGradientFunctions(self):
@@ -29,7 +30,7 @@ class VA:
         W=theta
         y=X[:,0]
         X_sim=X[:,1:]
-        f = (T.dot(X_sim,W)+u).flatten()
+        f = (T.dot(X_sim,W)).flatten()+u
         
         gradvariables = [mu, logSigma, logLambd]
         
