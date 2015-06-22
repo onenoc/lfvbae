@@ -33,7 +33,6 @@ print "this should be approximately -0.92/2"
 print encoder.lowerboundfunction(*(gradvariables), X=[[2, 0, 1]], u=[[1]], v=[[1], [1]])
 '''
 
-'''
 m = 20000
 #dimX, dimTheta, m, n
 n=2
@@ -60,7 +59,6 @@ for i in range(3000):
 
 plt.plot(encoder.lowerBounds)
 plt.show()
-'''
 
 '''
 #mu = encoder.params[0]

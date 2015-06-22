@@ -30,7 +30,7 @@ class VA:
         W=theta
         y=X[:,0]
         X_sim=X[:,1:]
-        f = (T.dot(X_sim,W)).flatten()+u
+        f = (T.dot(X_sim,W)+u).flatten()
         
         gradvariables = [mu, logSigma, logLambd]
         
