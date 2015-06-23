@@ -4,70 +4,58 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 
-def generate_data(m,n,weight_vector,bias):
+def generate_data(m,n,weight_vector,bias,sigma_e):
     X = np.random.uniform(0, 1,(m, n))
-    e = np.random.normal(0, 1,(m,1))
+    e = np.random.normal(0, sigma_e,(m,1))
     if bias:
         X = np.column_stack((X,np.ones(m)))
     dot = np.reshape(np.dot(X,weight_vector), (m,1))
     Y = dot+e
     return Y,X
-    
 
-m = 200
-#dimX, dimTheta, m, n
+def get_true_posterior(muPrior, sigmaPrior,n,bias, sigma_e):
+    alpha = 1./sigmaPrior
+    Sinv = np.dot(alpha, sigma_e*np.identity(n+bias))+np.dot(X.T,X)
+    S = np.linalg.inv(Sinv)
+    muTrue = np.dot(S,np.dot(X.T,Y)) 
+    return muTrue,np.sqrt(S)
+
+m = 100
 n=1
 bias=0
-encoder = lfvbae.VA(n+bias, n+bias, m, 1, learning_rate=0.3)
+sigma_e=1
+#dimX, dimTheta, m, n
+encoder = lfvbae.VA(n+bias, n+bias, m, 1, learning_rate=0.1)
 encoder.initParams()
 encoder.createGradientFunctions()
 
-X = np.random.uniform(0, 1,(m, n))
-#X = np.column_stack((X,np.ones(m)))
-e = np.random.normal(0, 1,(m,1))
-
-dot = np.reshape(np.dot(X,np.array([2])), (m,1))
-Y = dot+e
+Y,X=generate_data(m,n,np.array([2]),0, sigma_e)
 
 muPrior, sigmaPrior = encoder.params[0][0][0], np.exp(encoder.params[1][0][0])
-print sigmaPrior
-alpha = 1/sigmaPrior
-Sinv = np.dot(alpha, np.identity(n+bias))+np.dot(X.T,X)
-S = np.linalg.inv(Sinv)
-muTrue = np.dot(S,np.dot(X.T,Y)) 
+muTrue,sigmaTrue = get_true_posterior(muPrior,sigmaPrior,n,bias,sigma_e)
 
 X = np.column_stack((Y,X))
-#print "data y,x"
-#print X
-#we will need to add bias
+
 posteriors = []
-print encoder.params
-for i in range(2001):
+iterations = 2000
+for i in range(iterations):
     if i%100==0:
         print "intercept mean, logSigma, logLambda"
         print encoder.params
+    if i==iterations-1:
         muPosterior, sigmaPosterior = encoder.params[0][0][0], np.exp(encoder.params[1][0][0])
-        if i%500==0:
-            posteriors.append((muPosterior, sigmaPosterior))
+        posteriors.append((muPosterior, sigmaPosterior))
     encoder.iterate(X)
 print "variational inference posterior"
 print posteriors[-1]
 
 print "true posterior"
 print muTrue
-print np.sqrt(S)
+print sigmaTrue
 
 print "times difference"
-print posteriors[-1][1]/np.sqrt(S)[0][0]
+print posteriors[-1][1]/sigmaTrue
 
-'''
-maxMu = max(max([i[0] for i in posteriors]), muPrior)
-minMu = min(min([i[0] for i in posteriors]), muPrior)
-maxSD = max(max([i[1] for i in posteriors]), sigmaPrior)
-print minMu
-print maxMu
-print maxSD
-print posteriors
 '''
 #muPosterior = posteriors[-1][0]
 #sigmaPosterior = posteriors[-1][1]
@@ -84,7 +72,6 @@ print posteriors
 
 #plt.show()
 
-'''
 #mu = encoder.params[0]
 #print mu
 X = np.matrix(X)
