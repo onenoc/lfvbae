@@ -15,7 +15,7 @@ class VA:
 
     def initParams(self):
         mu = np.random.normal(10, 10, (self.dimTheta, 1))
-        logSigma = np.random.uniform(-10, 10, (self.dimTheta, 1))
+        logSigma = np.random.uniform(0, 4, (self.dimTheta, 1))
         logLambd = np.matrix(np.random.uniform(0, 10))
         logR = np.matrix(np.random.uniform(1, 5))
         self.params = [mu, logSigma, logLambd]
