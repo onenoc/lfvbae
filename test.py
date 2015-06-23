@@ -20,12 +20,12 @@ def get_true_posterior(muPrior, sigmaPrior,n,bias, sigma_e):
     muTrue = np.dot(S,np.dot(X.T,Y)) 
     return muTrue,np.sqrt(S)
 
-m = 100
+m = 10
 n=1
 bias=0
 sigma_e=1
 #dimX, dimTheta, m, n
-encoder = lfvbae.VA(n+bias, n+bias, m, 1, learning_rate=0.1)
+encoder = lfvbae.VA(n+bias, n+bias, m, 1, learning_rate=0.2)
 encoder.initParams()
 encoder.createGradientFunctions()
 
@@ -37,7 +37,7 @@ muTrue,sigmaTrue = get_true_posterior(muPrior,sigmaPrior,n,bias,sigma_e)
 X = np.column_stack((Y,X))
 
 posteriors = []
-iterations = 2000
+iterations = 3000
 for i in range(iterations):
     if i%100==0:
         print "intercept mean, logSigma, logLambda"
