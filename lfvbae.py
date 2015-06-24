@@ -1,6 +1,8 @@
 import numpy as np
 import theano as th
 import theano.tensor as T
+from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
+from pylearn2.utils import sharedX
 
 class VA:
     def __init__(self, dimX, dimTheta, m, n, L=1, learning_rate = 0.01):
@@ -24,6 +26,9 @@ class VA:
         #create
         X = T.dmatrices("X")
         mu, logSigma, u, v, f, R = T.dcols("mu", "logSigma", "u", "v", "f", "R")
+        mu = sharedX( np.random.normal(10, 10, (self.dimTheta, 1)), name='mu') 
+        logSigma = sharedX(np.random.uniform(0, 4, (self.dimTheta, 1)), name='logSigma')
+        logLambd = sharedX(np.matrix(np.random.uniform(0, 10)),name='logLambd')
         logLambd = T.patternbroadcast(T.dmatrix("logLambd"),[1,1])
         negKL = 0.5 * T.sum(1 + 2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         theta = mu+T.exp(logSigma)*v
@@ -38,6 +43,8 @@ class VA:
         logLike = T.sum(-(0.5 * np.log(2 * np.pi) + logLambd) - 0.5 * ((y-f)/(T.exp(logLambd)))**2)
 
         logp = (negKL + logLike)/self.m
+
+        optimizer = -logp
         
         self.negKL = th.function([mu, logSigma], negKL, on_unused_input='ignore')
         self.f = th.function(gradvariables + [X,u,v], f, on_unused_input='ignore')
@@ -48,17 +55,25 @@ class VA:
         self.gradientfunction = th.function(gradvariables + [X, u, v], derivatives, on_unused_input='ignore')
         self.lowerboundfunction = th.function(gradvariables + [X, u, v], logp, on_unused_input='ignore')
 
+        self.optimizer = BatchGradientDescent(objective=optimizer, params=gradvariables,inputs = [X,u,v],conjugate=True,max_iter=1)
+
     def iterate(self, data):
         '''''Main method, slices data in minibatches and performs an iteration'''''
         totalGradients = self.getGradients(data)
         self.iterations += 1
         self.updateParams(totalGradients)
 
+    def iterateConjugate(self, batch):
+        v = np.random.normal(0, 1,[self.dimTheta,1])
+        u = np.random.normal(0, 1,[self.m,1])
+        self.minimizer.minimize(X,u,v)
+
     def getGradients(self, batch):
         totalGradients = [0] * len(self.params)
         v = np.random.normal(0, 1,[self.dimTheta,1]) 
         u = np.random.normal(0, 1,[self.m,1])
         gradients = self.gradientfunction(*(self.params),X=batch,u=u,v=v)
+        self.minimizer.minimize(X,u,v)
         '''
         print "log-likelihood"
         print self.logLike(*(self.params),X=batch,u=u,v=v)
