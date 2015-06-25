@@ -35,7 +35,7 @@ muPrior, sigmaPrior = encoder.params[0][0][0], np.exp(encoder.params[1][0][0])
 muTrue,sigmaTrue = get_true_posterior(muPrior,sigmaPrior,n,bias,sigma_e)
 
 X = np.column_stack((Y,X))
-
+'''
 posteriors = []
 iterations = 3000
 for i in range(iterations):
@@ -45,7 +45,9 @@ for i in range(iterations):
     if i==iterations-1:
         muPosterior, sigmaPosterior = encoder.params[0][0][0], np.exp(encoder.params[1][0][0])
         posteriors.append((muPosterior, sigmaPosterior))
-    encoder.iterate(X)
+    encoder.iterateConjugate(X)
+    #encoder.iterate(X)
+
 print "variational inference posterior"
 print posteriors[-1]
 
@@ -55,6 +57,7 @@ print sigmaTrue
 
 print "times difference"
 print posteriors[-1][1]/sigmaTrue
+'''
 
 '''
 #muPosterior = posteriors[-1][0]
