@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 
 def generate_data(m,n,weight_vector,bias,sigma_e):
-    X = np.random.uniform(0, 1,(m, n))
+    X = np.random.uniform(0, 100,(m, n))
     e = np.random.normal(0, sigma_e,(m,1))
     if bias:
         X = np.column_stack((X,np.ones(m)))
@@ -20,17 +20,20 @@ def get_true_posterior(muPrior, sigmaPrior,n,bias, sigma_e):
     muTrue = np.dot(S,np.dot(X.T,Y))
     return muTrue,np.sqrt(S)
 
-X = np.array([1, 2, 4])
-y = 2*X
+m = 20000
+n=1
+bias=0
+sigma_e=0.1
+
+y,X = generate_data(m,n,np.array([-3]),0, sigma_e)
+
 
 batch = np.column_stack((y,X))
 
-m = 3
-n=1
-bias=0
-sigma_e=1
 #dimX, dimTheta, m, n
 encoder = lfvbae.VA(n+bias, n+bias, m, 1)
 
-encoder.createGradientFunctions()
-encoder.iterate(batch)
+encoder.initParams()
+encoder.createObjectiveFunction()
+for i in range(5000):
+    encoder.iterate(batch)
