@@ -1,4 +1,4 @@
-import lfvbae
+import lfvbaeold as lfvbae
 import theano as th
 import numpy as np
 
