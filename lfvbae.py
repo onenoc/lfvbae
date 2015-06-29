@@ -39,34 +39,40 @@ class VA:
         u, v, f = T.vectors("u", "v", "f")
 
         mu = self.params[0]
+        #mu = sharedX(np.array([[-3]]),name='mu')
         logSigma = self.params[1]
-        logLambda = sharedX(-4.605,name='logLambda')
+        logLambda = sharedX(-2.303,name='logLambda')
+        #-2.303 for sigma_e=0.1, -4.605 for 0.01
         #logLambda = self.params[2]
 
         negKL = 0.5*self.dimTheta+T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
         f = T.dot(X,theta)+u.dimshuffle(0,'x')
 
-        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y.dimshuffle(0,'x')-f)**2)/(T.exp(logLambda)**2)
+        logLike = -0*self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y.dimshuffle(0,'x')-f)**2)
+        #/(T.exp(logLambda)**2)
 
         elbo = (negKL + logLike)
-        obj = -elbo
-        self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=0)
-        derivatives = T.grad(obj,self.params[0:1])
+        obj = -logLike
+        self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
+        derivatives = T.grad(obj,self.params[1])
         self.gradientfunction = th.function([X,y,u,v], derivatives,on_unused_input='ignore')
+        self.calctheta = th.function([v],theta)
        
     def iterate(self,batch):
         X = batch[:,1:]
         y = batch[:,0]
         v = np.random.normal(0, 1,self.dimTheta)
-        u = np.random.normal(0, 0.01,self.m)
+        u = np.random.normal(0, 0.1**2,self.m)
         cost = self.minimizer.minimize(X,y,u,v)
         #keep track of min cost and its parameters
         if self.iterations == 0 or cost < self.minCost:
             self.minCost = cost
             self.minCostParams = [self.params[0].get_value(), np.exp(self.params[1].get_value()),np.exp(self.params[2].get_value())]
         self.lowerBounds.append(cost)
-        if self.iterations % 100 == 0:
+        if self.iterations % 300 == 0:
+            print "theta"
+            print self.calctheta(v)
             self.print_parameters()
             print self.gradientfunction(X=X,y=y,u=u,v=v)
         self.iterations += 1
