@@ -42,20 +42,27 @@ class VA:
 
         mu = self.params[0]
         logSigma = self.params[1]
-        #logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
-        logLambda = self.params[2]
+        logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
+        #logLambda = self.params[2]
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
-        theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
-        #the only thing that could be wrong here is the T.exp(logSigma)*v.dimshuffle(0,'x')
-        f = T.dot(X,theta)+u.dimshuffle(0,'x')
-        #or the u.dimshuffle(0,'x')
+        f = self.regression_simulator(X,u,v,mu,logSigma)
 
         logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y.dimshuffle(0,'x')-f)**2)/(T.exp(logLambda)**2)
 
         elbo = (negKL + logLike)
         obj = -elbo
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
+
+    def regression_simulator(self,X,u,v,mu,logSigma):
+        theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
+        return T.dot(X,theta)+u.dimshuffle(0,'x')
+
+    def fisher_wright(x0, x1, x2, k):
+        N = sharedX(2000,name='N')
+        p1 = sharedX(0.1,name='N')
+        p0 = 1/(1+k*x2/N)
+        
            
     def iterate(self,batch):
         X = batch[:,1:]

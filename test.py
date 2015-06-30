@@ -27,7 +27,7 @@ def plot_cost(encoder):
 m = 20
 n=1
 bias=0
-sigma_e=0.5
+sigma_e=0.1
 
 y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
 muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
@@ -40,7 +40,7 @@ encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e)
 encoder.initParams()
 encoder.createObjectiveFunction()
 
-for i in range(20000):
+for i in range(10000):
     encoder.iterate(batch)
 
 '''
