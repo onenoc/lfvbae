@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 
 def generate_data(m,n,weight_vector,bias,sigma_e):
-    X = np.random.uniform(0, 10,(m, n))
+    X = np.random.uniform(0, 1,(m, n))
     e = np.random.normal(0, (sigma_e)**2,(m,1))
     if bias:
         X = np.column_stack((X,np.ones(m)))
@@ -24,10 +24,10 @@ def plot_cost(encoder):
     plt.plot(encoder.lowerBounds[1500:])
     plt.show()
 
-m = 200
+m = 20
 n=1
 bias=0
-sigma_e=2
+sigma_e=0.5
 
 y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
 muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)

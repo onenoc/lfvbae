@@ -32,16 +32,18 @@ class VA:
     def createObjectiveFunction(self):
         '''
         @description: initialize objective function and minimization function
+        @X,y data matrix/vector
+        @u random noise for simulator
+        @v standard normal for reparametrization trick
         '''
         X = T.dmatrix("X")
         y = T.vector("y")
         u, v, f = T.vectors("u", "v", "f")
 
         mu = self.params[0]
-        #mu = sharedX(np.array([[-3]]),name='mu')
         logSigma = self.params[1]
-        logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
-        #logLambda = self.params[2]
+        #logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
+        logLambda = self.params[2]
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
@@ -54,7 +56,6 @@ class VA:
         elbo = (negKL + logLike)
         obj = -elbo
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
-        #derivatives = T.grad(obj,self.params)
            
     def iterate(self,batch):
         X = batch[:,1:]
