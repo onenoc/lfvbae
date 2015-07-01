@@ -95,7 +95,7 @@ if __name__=='__main__':
    
     plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
     
-    x = np.linspace(sigmaSDTrue-sigmaSDTrue,sigmaSDTrue+sigmaSDTrue, 20)
+    x = np.linspace(sigmaSDTrue-4*sigmaSDTrue,sigmaSDTrue+4*sigmaSDTrue, 20)
     costs = []
     for val in x:
         costs.append(encoder.changeParamsAndCalcCost(batch,muSDTrue, np.array([[val]])))

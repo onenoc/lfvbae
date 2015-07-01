@@ -5,7 +5,7 @@ from pylearn2.utils import sharedX
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 
 class VA:
-    def __init__(self, dimX, dimTheta, m, n, sigma_e):
+    def __init__(self, dimX, dimTheta, m, n, sigma_e, L=1):
         '''
         @param m: number of samples
         @param n: dimension
@@ -17,6 +17,7 @@ class VA:
         self.n = n
         self.sigma_e = sigma_e
         self.iterations = 0
+        self.L = L
         self.minCostParams = []
         self.lowerBounds = []
 
@@ -65,9 +66,9 @@ class VA:
         self.createObjectiveFunction()
         X = batch[:,1:]
         y = batch[:,0]
-        np.random.seed(seed=10)
+        #np.random.seed(seed=10)
         v = np.random.normal(0, 1,self.dimTheta)
-        np.random.seed(seed=50)
+        #np.random.seed(seed=50)
         u = np.random.normal(0, self.sigma_e,self.m)
         print u
         ret_val = self.lowerboundfunction(X,y,u,v)
