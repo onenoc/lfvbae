@@ -62,13 +62,12 @@ class VA:
         N = sharedX(2000,name='N')
         p1 = sharedX(0.1,name='N')
         p0 = 1/(1+k*x2/N)
-        
            
     def iterate(self,batch):
         X = batch[:,1:]
         y = batch[:,0]
         v = np.random.normal(0, 1,self.dimTheta)
-        u = np.random.normal(0, self.sigma_e**2,self.m)
+        u = np.random.normal(0, self.sigma_e,self.m)
         cost = self.minimizer.minimize(X,y,u,v)
         #keep track of min cost and its parameters
         if self.iterations == 0 or cost < self.minCost:

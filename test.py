@@ -10,7 +10,7 @@ Run variational inference
 
 def generate_data(m,n,weight_vector,bias,sigma_e):
     X = np.random.uniform(0, 1,(m, n))
-    e = np.random.normal(0, (sigma_e)**2,(m,1))
+    e = np.random.normal(0, sigma_e,(m,1))
     if bias:
         X = np.column_stack((X,np.ones(m)))
     dot = np.reshape(np.dot(X,weight_vector), (m,1))
@@ -46,17 +46,30 @@ def run_VA_five_times(n, bias, m, sigma_e, iterations, batch):
         sigma_list.append(np.exp(encoder.params[1].get_value()))
     return np.median(mu_list), np.median(sigma_list)
 
+def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
+    xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
+    xMax = max(muVar,muSDTrue)+2*max(sigmaVar,np.sqrt(varSDTrue))
+    
+    x = np.linspace(xMin,xMax, 1000)
+    plt.title('m= %f, sigma_e=%f, weight=2, no bias, %i iterations' % (m, sigma_e, iterations)) 
+    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar))
+    plt.plot(x,mlab.normpdf(x,muSDTrue,sigmaSDTrue))
+    plt.legend(('variational, sd=%f' % (sigmaVar), 'bayesian regression sd=%f' % (sigmaSDTrue)))
+    plt.show()
+    
+
 if __name__=='__main__':
-    m = 2000
+    m = 20
     n=1
     bias=0
     sigma_e=1
    
-    iterations = 3000
+    iterations = 1000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
     muSDTrue = muSDTrue[0][0]
     varSDTrue = varSDTrue[0][0]
+    sigmaSDTrue = np.sqrt(varSDTrue)
     
     batch = np.column_stack((y,X))
     
@@ -69,18 +82,4 @@ if __name__=='__main__':
     print "MLE sigma"
     print np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
    
-    xVarMin = muVar-2*sigmaVar
-    xVarMax = muVar+2*sigmaVar
-    xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
-    xMax = max(muVar,muSDTrue)+2*max(sigmaVar,np.sqrt(varSDTrue))
-    
-    x = np.linspace(xMin,xMax, 1000)
-   
-    plt.title('m= %f, sigma_e=%f, weight=2, no bias, %i iterations' % (m, sigma_e, iterations)) 
-    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar))
-    plt.plot(x,mlab.normpdf(x,muSDTrue,np.sqrt(varSDTrue)))
-    plt.legend(('variational, sd=%f' % (sigmaVar), 'bayesian regression sd=%f' % (np.sqrt(varSDTrue))))
-    plt.show()
-    
-    #fix lambda for variational inference
-
+    plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
