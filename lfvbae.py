@@ -52,8 +52,28 @@ class VA:
 
         elbo = (negKL + logLike)
         obj = -elbo
+        self.lowerboundfunction = th.function([X, y, u, v], obj, on_unused_input='ignore')
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
 
+    def changeParamsAndCalcCost(self, batch, mu='same', sigma='same'):
+        if mu!='same':
+            mu = sharedX(mu, name='mu')
+            self.params[0] = mu
+        if sigma!='same':
+            logSigma = sharedX(np.log(sigma), name='logSigma')
+            self.params[1] = logSigma
+        self.createObjectiveFunction()
+        X = batch[:,1:]
+        y = batch[:,0]
+        np.random.seed(seed=10)
+        v = np.random.normal(0, 1,self.dimTheta)
+        np.random.seed(seed=50)
+        u = np.random.normal(0, self.sigma_e,self.m)
+        print u
+        ret_val = self.lowerboundfunction(X,y,u,v)
+        np.random.seed()
+        return ret_val
+        
     def regression_simulator(self,X,u,v,mu,logSigma):
         theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
         return T.dot(X,theta)+u.dimshuffle(0,'x')

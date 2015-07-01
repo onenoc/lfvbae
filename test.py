@@ -4,12 +4,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 import scipy.stats as stats
+import math
 '''
 Run variational inference 
 '''
 
 def generate_data(m,n,weight_vector,bias,sigma_e):
+    np.random.seed(50)
     X = np.random.uniform(0, 1,(m, n))
+    np.random.seed(50)
     e = np.random.normal(0, sigma_e,(m,1))
     if bias:
         X = np.column_stack((X,np.ones(m)))
@@ -24,8 +27,9 @@ def true_posterior_standard_normal(n, bias, sigma_e,X,y):
     muTrue = beta*np.dot(S,np.dot(X.T,y))
     return muTrue,S
 
-def plot_cost(encoder):
-    plt.plot(encoder.lowerBounds[1500:])
+def plot_cost(encoder, start_percent=0):
+    iterations = len(encoder.lowerBounds)
+    plt.plot(encoder.lowerBounds[int(start_percent*iterations):])
     plt.show()
 
 def run_VA(n, bias, m, sigma_e, iterations, batch):
@@ -44,7 +48,7 @@ def run_VA_five_times(n, bias, m, sigma_e, iterations, batch):
         encoder = run_VA(n, bias, m, sigma_e, iterations, batch)
         mu_list.append(encoder.params[0].get_value())
         sigma_list.append(np.exp(encoder.params[1].get_value()))
-    return np.median(mu_list), np.median(sigma_list)
+    return np.median(mu_list), np.median(sigma_list), encoder
 
 def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
@@ -62,10 +66,11 @@ if __name__=='__main__':
     m = 20
     n=1
     bias=0
-    sigma_e=1
+    sigma_e=0.5
    
     iterations = 1000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
+    np.random.seed()
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
     muSDTrue = muSDTrue[0][0]
     varSDTrue = varSDTrue[0][0]
@@ -73,9 +78,15 @@ if __name__=='__main__':
     
     batch = np.column_stack((y,X))
     
-    muVar, sigmaVar = run_VA_five_times(n, bias, m, sigma_e, iterations, batch)
+    muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch)
 
     #plot_cost(encoder)
+    print "final cost"
+    print encoder.lowerBounds[-1]
+
+    print "variational posterior"
+    print encoder.params[0].get_value(), np.exp(encoder.params[1].get_value())
+
     print "true posterior"
     print muSDTrue, np.sqrt(varSDTrue)
     
@@ -83,3 +94,13 @@ if __name__=='__main__':
     print np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
    
     plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
+    
+    x = np.linspace(sigmaSDTrue-sigmaSDTrue,sigmaSDTrue+sigmaSDTrue, 20)
+    costs = []
+    for val in x:
+        costs.append(encoder.changeParamsAndCalcCost(batch,muSDTrue, np.array([[val]])))
+        print costs[-1]
+    cost_true_posterior = encoder.changeParamsAndCalcCost(batch,muSDTrue,sigmaSDTrue)
+
+    plt.plot(x, costs)
+    plt.show()
