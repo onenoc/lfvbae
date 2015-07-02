@@ -66,7 +66,7 @@ if __name__=='__main__':
     m = 20
     n=1
     bias=0
-    sigma_e=0.5
+    sigma_e=0.1
    
     iterations = 1000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
@@ -95,7 +95,7 @@ if __name__=='__main__':
    
     plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
     
-    x = np.linspace(sigmaSDTrue-4*sigmaSDTrue,sigmaSDTrue+4*sigmaSDTrue, 20)
+    x = np.linspace(0,sigmaSDTrue+100*sigmaSDTrue, 20)
     costs = []
     for val in x:
         costs.append(encoder.changeParamsAndCalcCost(batch,muSDTrue, np.array([[val]])))

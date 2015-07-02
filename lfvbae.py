@@ -38,8 +38,7 @@ class VA:
         @v standard normal for reparametrization trick
         '''
         X = T.dmatrix("X")
-        y = T.vector("y")
-        u, v, f = T.vectors("u", "v", "f")
+        f, y, u,v = T.dcols("f", "y", "u","v")
 
         mu = self.params[0]
         logSigma = self.params[1]
@@ -49,7 +48,7 @@ class VA:
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         f = self.regression_simulator(X,u,v,mu,logSigma)
 
-        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y.dimshuffle(0,'x')-f)**2)/(T.exp(logLambda)**2)
+        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
 
         elbo = (negKL + logLike)
         obj = -elbo
@@ -65,19 +64,18 @@ class VA:
             self.params[1] = logSigma
         self.createObjectiveFunction()
         X = batch[:,1:]
-        y = batch[:,0]
+        y = np.matrix(batch[:,0]).T
         #np.random.seed(seed=10)
-        v = np.random.normal(0, 1,self.dimTheta)
+        v = np.random.normal(0, 1,(self.dimTheta,1))
         #np.random.seed(seed=50)
-        u = np.random.normal(0, self.sigma_e,self.m)
-        print u
+        u = np.random.normal(0, self.sigma_e,(self.m,1))
         ret_val = self.lowerboundfunction(X,y,u,v)
         np.random.seed()
         return ret_val
         
     def regression_simulator(self,X,u,v,mu,logSigma):
-        theta = mu + T.exp(logSigma)*v.dimshuffle(0,'x')
-        return T.dot(X,theta)+u.dimshuffle(0,'x')
+        theta = mu + T.exp(logSigma)*v
+        return T.dot(X,theta)+u
 
     def fisher_wright(x0, x1, x2, k):
         N = sharedX(2000,name='N')
@@ -86,9 +84,9 @@ class VA:
            
     def iterate(self,batch):
         X = batch[:,1:]
-        y = batch[:,0]
-        v = np.random.normal(0, 1,self.dimTheta)
-        u = np.random.normal(0, self.sigma_e,self.m)
+        y = np.matrix(batch[:,0]).T
+        v = np.random.normal(0, 1,(self.dimTheta,1))
+        u = np.random.normal(0, self.sigma_e,(self.m,1))
         cost = self.minimizer.minimize(X,y,u,v)
         #keep track of min cost and its parameters
         if self.iterations == 0 or cost < self.minCost:
