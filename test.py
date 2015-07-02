@@ -51,7 +51,6 @@ def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1):
 def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
     xMax = max(muVar,muSDTrue)+2*max(sigmaVar,np.sqrt(varSDTrue))
-    
     x = np.linspace(xMin,xMax, 1000)
     plt.title('m= %f, sigma_e=%f, weight=2, no bias, %i iterations' % (m, sigma_e, iterations)) 
     plt.plot(x,mlab.normpdf(x,muVar,sigmaVar))
@@ -64,6 +63,17 @@ def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1):
     encoder.initParams()
     encoder.createObjectiveFunction()
     return encoder
+
+def plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue):
+    x = np.linspace(0,sigmaSDTrue+100*sigmaSDTrue, 20)
+    costs = []
+    for val in x:
+        costs.append(encoder.changeParamsAndCalcCost(batch,muSDTrue, np.array([[val]])))
+        print costs[-1]
+    cost_true_posterior = encoder.changeParamsAndCalcCost(batch,muSDTrue,sigmaSDTrue)
+
+    plt.plot(x, costs)
+    plt.show()
 
 if __name__=='__main__':
     m = 200
@@ -81,7 +91,6 @@ if __name__=='__main__':
     sigmaSDTrue = np.sqrt(varSDTrue)
     
     batch = np.column_stack((y,X))
-   
  
     muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch,Lu=Lu)
 
@@ -99,13 +108,4 @@ if __name__=='__main__':
     print np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
    
     plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
-    
-    x = np.linspace(0,sigmaSDTrue+100*sigmaSDTrue, 20)
-    costs = []
-    for val in x:
-        costs.append(encoder.changeParamsAndCalcCost(batch,muSDTrue, np.array([[val]])))
-        print costs[-1]
-    cost_true_posterior = encoder.changeParamsAndCalcCost(batch,muSDTrue,sigmaSDTrue)
-
-    plt.plot(x, costs)
-    plt.show()
+    #plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue) 
