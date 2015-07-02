@@ -5,7 +5,7 @@ from pylearn2.utils import sharedX
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 
 class VA:
-    def __init__(self, dimX, dimTheta, m, n, sigma_e, L=1):
+    def __init__(self, dimX, dimTheta, m, n, sigma_e, Lu=1):
         '''
         @param m: number of samples
         @param n: dimension
@@ -17,7 +17,7 @@ class VA:
         self.n = n
         self.sigma_e = sigma_e
         self.iterations = 0
-        self.L = L
+        self.Lu = Lu
         self.minCostParams = []
         self.lowerBounds = []
 
@@ -37,9 +37,9 @@ class VA:
         @u random noise for simulator
         @v standard normal for reparametrization trick
         '''
-        X = T.dmatrix("X")
-        f, y, u,v = T.dcols("f", "y", "u","v")
-
+        X,u = T.dmatrices("X","u")
+        f, y, v = T.dcols("f", "y", "v")
+        
         mu = self.params[0]
         logSigma = self.params[1]
         logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
@@ -48,7 +48,7 @@ class VA:
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         f = self.regression_simulator(X,u,v,mu,logSigma)
 
-        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
+        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
 
         elbo = (negKL + logLike)
         obj = -elbo
@@ -65,17 +65,19 @@ class VA:
         self.createObjectiveFunction()
         X = batch[:,1:]
         y = np.matrix(batch[:,0]).T
-        #np.random.seed(seed=10)
+        u = np.random.normal(0, self.sigma_e,(self.m,1))
+        np.random.seed(seed=10)
         v = np.random.normal(0, 1,(self.dimTheta,1))
         #np.random.seed(seed=50)
-        u = np.random.normal(0, self.sigma_e,(self.m,1))
         ret_val = self.lowerboundfunction(X,y,u,v)
         np.random.seed()
         return ret_val
         
     def regression_simulator(self,X,u,v,mu,logSigma):
         theta = mu + T.exp(logSigma)*v
-        return T.dot(X,theta)+u
+        predval = T.dot(X,theta)
+        predval = T.addbroadcast(predval,1)
+        return predval+u
 
     def fisher_wright(x0, x1, x2, k):
         N = sharedX(2000,name='N')
@@ -86,7 +88,7 @@ class VA:
         X = batch[:,1:]
         y = np.matrix(batch[:,0]).T
         v = np.random.normal(0, 1,(self.dimTheta,1))
-        u = np.random.normal(0, self.sigma_e,(self.m,1))
+        u = np.random.normal(0, self.sigma_e,(self.m,self.Lu))
         cost = self.minimizer.minimize(X,y,u,v)
         #keep track of min cost and its parameters
         if self.iterations == 0 or cost < self.minCost:

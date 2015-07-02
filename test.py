@@ -32,20 +32,18 @@ def plot_cost(encoder, start_percent=0):
     plt.plot(encoder.lowerBounds[int(start_percent*iterations):])
     plt.show()
 
-def run_VA(n, bias, m, sigma_e, iterations, batch):
+def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1):
     #dimX, dimTheta, m, n
-    encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e)
-    encoder.initParams()
-    encoder.createObjectiveFunction()
+    encoder = create_encoder(n, bias, m, sigma_e, iterations, batch, Lu)
     for i in range(iterations):
         encoder.iterate(batch)
     return encoder
 
-def run_VA_five_times(n, bias, m, sigma_e, iterations, batch):
+def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1):
     mu_list = []
     sigma_list = []
     for i in range(5):
-        encoder = run_VA(n, bias, m, sigma_e, iterations, batch)
+        encoder = run_VA(n, bias, m, sigma_e, iterations, batch, Lu)
         mu_list.append(encoder.params[0].get_value())
         sigma_list.append(np.exp(encoder.params[1].get_value()))
     return np.median(mu_list), np.median(sigma_list), encoder
@@ -61,12 +59,18 @@ def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     plt.legend(('variational, sd=%f' % (sigmaVar), 'bayesian regression sd=%f' % (sigmaSDTrue)))
     plt.show()
     
+def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1):
+    encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e, Lu)
+    encoder.initParams()
+    encoder.createObjectiveFunction()
+    return encoder
 
 if __name__=='__main__':
-    m = 20
+    m = 200
     n=1
     bias=0
-    sigma_e=0.1
+    sigma_e=0.5
+    Lu=1
    
     iterations = 1000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
@@ -77,8 +81,9 @@ if __name__=='__main__':
     sigmaSDTrue = np.sqrt(varSDTrue)
     
     batch = np.column_stack((y,X))
-    
-    muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch)
+   
+ 
+    muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch,Lu=Lu)
 
     #plot_cost(encoder)
     print "final cost"
