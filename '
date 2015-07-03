@@ -20,8 +20,7 @@ class VA:
         self.Lu = Lu
         self.minCostParams = []
         self.lowerBounds = []
-        self.converge = 0
-        self.sigmas = []
+        encoder.converge = 0
 
     def initParams(self):
         '''
@@ -44,20 +43,16 @@ class VA:
         
         mu = self.params[0]
         logSigma = self.params[1]
-        #logLambda = sharedX(5000,name='logLambda')
         logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
         #logLambda = self.params[2]
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
-        f = T.dot(X,mu + T.exp(logSigma)*v)
-        #self.regression_simulator(X,u,v,mu,logSigma)
+        f = self.regression_simulator(X,u,v,mu,logSigma)
 
-        #logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
-
-        logLike = -T.sum((y-T.dot(X,mu + T.exp(logSigma)*v))**2)
+        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
 
         elbo = (negKL + logLike)
-        obj = -logLike
+        obj = -elbo
         self.lowerboundfunction = th.function([X, y, u, v], obj, on_unused_input='ignore')
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=0)
 
@@ -80,11 +75,10 @@ class VA:
         return ret_val
         
     def regression_simulator(self,X,u,v,mu,logSigma):
-        theta = mu + logSigma*v
+        theta = mu + T.exp(logSigma)*v
         predval = T.dot(X,theta)
         predval = T.addbroadcast(predval,1)
-        #+u
-        return predval
+        return predval+u
 
     def fisher_wright(x0, x1, x2, k):
         N = sharedX(2000,name='N')
@@ -102,13 +96,13 @@ class VA:
             self.minCost = cost
             self.minCostParams = [self.params[0].get_value(), np.exp(self.params[1].get_value()),np.exp(self.params[2].get_value())]
         self.lowerBounds.append(cost)
-        if self.iterations > 2 and abs((self.lowerBounds[-1]-self.lowerBounds[-2])/self.lowerBounds[-2]) < 0.001:
-            self.converge = 1
+        if self.iterations > 2 and abs(self.lowerBounds[-1]-self.lowerBounds[-2]) < 0.5:
+            self.converge == 1
+            print converged
         if self.iterations % 300 == 0:
             print "theta"
             self.print_parameters()
         self.iterations += 1
-        self.sigmas.append(np.exp(self.params[1].get_value()))
 
     def print_parameters(self):
         print "\n"

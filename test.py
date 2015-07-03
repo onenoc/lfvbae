@@ -35,14 +35,17 @@ def plot_cost(encoder, start_percent=0):
 def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1):
     #dimX, dimTheta, m, n
     encoder = create_encoder(n, bias, m, sigma_e, iterations, batch, Lu)
-    for i in range(iterations):
+    i = 0
+    while i<iterations:
+        #encoder.converge==0:
         encoder.iterate(batch)
+        i+=1
     return encoder
 
 def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1):
     mu_list = []
     sigma_list = []
-    for i in range(5):
+    for i in range(1):
         encoder = run_VA(n, bias, m, sigma_e, iterations, batch, Lu)
         mu_list.append(encoder.params[0].get_value())
         sigma_list.append(np.exp(encoder.params[1].get_value()))
@@ -76,7 +79,7 @@ def plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue):
     plt.show()
 
 if __name__=='__main__':
-    m = 200
+    m = 20
     n=1
     bias=0
     sigma_e=0.5
@@ -104,8 +107,8 @@ if __name__=='__main__':
     print "true posterior"
     print muSDTrue, np.sqrt(varSDTrue)
     
-    print "MLE sigma"
-    print np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
+    print "MLE mu, sigma"
+    print np.dot(np.linalg.inv(np.dot(X.T,X)), np.dot(X.T,y)),np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
    
     plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
     #plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue) 
