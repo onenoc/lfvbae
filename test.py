@@ -48,7 +48,7 @@ def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1):
     for i in range(1):
         encoder = run_VA(n, bias, m, sigma_e, iterations, batch, Lu)
         mu_list.append(encoder.params[0].get_value())
-        sigma_list.append(np.exp(encoder.params[1].get_value()))
+        sigma_list.append(encoder.params[1].get_value())
     return np.median(mu_list), np.median(sigma_list), encoder
 
 def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
@@ -102,7 +102,7 @@ if __name__=='__main__':
     print encoder.lowerBounds[-1]
 
     print "variational posterior"
-    print encoder.params[0].get_value(), np.exp(encoder.params[1].get_value())
+    print encoder.params[0].get_value(), encoder.params[1].get_value()
 
     print "true posterior"
     print muSDTrue, np.sqrt(varSDTrue)
