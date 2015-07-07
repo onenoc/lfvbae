@@ -31,9 +31,9 @@ class VA:
         @description: parameters to learn
         '''
         mu = sharedX(np.random.normal(0, 10, (self.dimTheta, 1)), name='mu')
-        sigma = sharedX(np.random.uniform(0, 10, (self.dimTheta, 1)), name='logSigma')
+        logSigma = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
-        self.params = [mu,sigma]
+        self.params = [mu,logSigma]
         self.h = [0.01] * len(self.params) 
 
     def initH(self,batch):
@@ -53,13 +53,12 @@ class VA:
         f, y, v = T.dcols("f", "y", "v")
         
         mu = self.params[0]
-        sigma = self.params[1]
-        #logLambda = sharedX(5000,name='logLambda')
+        logSigma = self.params[1]
         logLambda = sharedX(np.log(self.sigma_e),name='logLambda')
         #logLambda = self.params[2]
 
-        negKL = 0.5*self.dimTheta+0.5*T.sum(2*T.log(sigma) - mu ** 2 - sigma ** 2)
-        f = T.dot(X,mu + sigma*v)
+        negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
+        f = T.dot(X,mu + T.exp(logSigma)*v)
         #self.regression_simulator(X,u,v,mu,logSigma)
 
         logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
@@ -134,8 +133,8 @@ class VA:
         #print self.lowerBounds[-1]
         print "mu"
         print self.params[0].get_value()
-        print "log sigma"
-        print self.params[1].get_value()
+        print "sigma"
+        print np.exp(self.params[1].get_value())
         #print "lambda"
         #print np.exp(self.params[2].get_value())
 
