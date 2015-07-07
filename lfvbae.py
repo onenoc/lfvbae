@@ -5,7 +5,7 @@ from pylearn2.utils import sharedX
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 
 class VA:
-    def __init__(self, dimX, dimTheta, m, n, sigma_e, Lu=1):
+    def __init__(self, dimX, dimTheta, m, n, sigma_e, Lu=1, learning_rate=0.01):
         '''
         @param m: number of samples
         @param n: dimension
@@ -22,6 +22,9 @@ class VA:
         self.lowerBounds = []
         self.converge = 0
         self.sigmas = []
+        self.learning_rate = learning_rate
+        print "learning rate"
+        print self.learning_rate
 
     def initParams(self):
         '''
@@ -30,7 +33,14 @@ class VA:
         mu = sharedX(np.random.normal(0, 10, (self.dimTheta, 1)), name='mu')
         sigma = sharedX(np.random.uniform(0, 10, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
-        self.params = [mu,sigma, logLambda]
+        self.params = [mu,sigma]
+        self.h = [0.01] * len(self.params) 
+
+    def initH(self,batch):
+        """Compute the gradients and use this to initialize h"""
+        totalGradients = self.getGradients(batch)
+        for i in xrange(len(totalGradients)):
+            self.h[i] += totalGradients[i]*totalGradients[i]
 
     def createObjectiveFunction(self):
         '''
@@ -59,7 +69,7 @@ class VA:
         elbo = (negKL + logLike)
         obj = -elbo
         self.lowerboundfunction = th.function([X, y, u, v], obj, on_unused_input='ignore')
-        derivatives = T.grad(obj,self.params[:2])
+        derivatives = T.grad(obj,self.params)
         self.gradientfunction = th.function([X,y,u,v], derivatives, on_unused_input='ignore')
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
 
@@ -98,29 +108,53 @@ class VA:
         y = np.matrix(batch[:,0]).T
         v = np.random.normal(0, 1,(self.dimTheta,1))
         u = np.random.normal(0, self.sigma_e,(self.m,self.Lu))
-        cost = self.minimizer.minimize(X,y,u,v)
+        #cost = self.minimizer.minimize(X,y,u,v)
+        gradients = self.getGradients(batch)
+        self.updateParams(gradients)
         #keep track of min cost and its parameters
+        '''
         if self.iterations == 0 or cost < self.minCost:
             self.minCost = cost
             self.minCostParams = [self.params[0].get_value(), self.params[1].get_value(),np.exp(self.params[2].get_value())]
         self.lowerBounds.append(cost)
         if self.iterations > 2 and abs((self.lowerBounds[-1]-self.lowerBounds[-2])/self.lowerBounds[-2]) < 0.001:
             self.converge = 1
+        '''
         if self.iterations % 300 == 0:
-            print "theta"
-            print self.gradientfunction(X=X,y=y,u=u,v=v)
+            #gradient = self.gradientfunction(X=X,y=y,u=u,v=v)
             self.print_parameters()
-        self.iterations += 1
+        '''
         self.sigmas.append(np.exp(self.params[1].get_value()))
+        '''
+        self.iterations += 1
 
     def print_parameters(self):
         print "\n"
-        print "cost"
-        print self.lowerBounds[-1]
+        #print "cost"
+        #print self.lowerBounds[-1]
         print "mu"
         print self.params[0].get_value()
         print "log sigma"
         print self.params[1].get_value()
-        print "lambda"
-        print np.exp(self.params[2].get_value())
+        #print "lambda"
+        #print np.exp(self.params[2].get_value())
 
+    def getGradients(self,batch):
+        """Compute the gradients for one minibatch and check if these do not contain NaNs"""
+        X = batch[:,1:]
+        y = np.matrix(batch[:,0]).T
+        v = np.random.normal(0, 1,(self.dimTheta,1))
+        u = np.random.normal(0, self.sigma_e,(self.m,self.Lu))
+        gradients = self.gradientfunction(X=X,y=y,u=u,v=v)
+        return gradients
+
+    def updateParams(self,totalGradients):
+        """Update the parameters, taking into account AdaGrad and a prior"""
+        for i in xrange(len(self.params)):
+            self.h[i] += totalGradients[i]*totalGradients[i]
+            if i < 5 or (i < 6 and len(self.params) == 12):
+                prior = 0.5*self.params[i].get_value()
+            else:
+                prior = 0
+            self.params[i].set_value(self.params[i].get_value()-self.learning_rate*totalGradients[i])
+            #/np.sqrt(self.h[i]))

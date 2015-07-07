@@ -32,9 +32,9 @@ def plot_cost(encoder, start_percent=0):
     plt.plot(encoder.lowerBounds[int(start_percent*iterations):])
     plt.show()
 
-def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1):
+def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate=0.001):
     #dimX, dimTheta, m, n
-    encoder = create_encoder(n, bias, m, sigma_e, iterations, batch, Lu)
+    encoder = create_encoder(n, bias, m, sigma_e, iterations, batch, Lu, learning_rate = learning_rate)
     i = 0
     while i<iterations:
         #encoder.converge==0:
@@ -42,11 +42,11 @@ def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1):
         i+=1
     return encoder
 
-def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1):
+def run_VA_five_times(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate = 0.001):
     mu_list = []
     sigma_list = []
     for i in range(1):
-        encoder = run_VA(n, bias, m, sigma_e, iterations, batch, Lu)
+        encoder = run_VA(n, bias, m, sigma_e, iterations, batch, Lu, learning_rate=learning_rate)
         mu_list.append(encoder.params[0].get_value())
         sigma_list.append(encoder.params[1].get_value())
     return np.median(mu_list), np.median(sigma_list), encoder
@@ -61,8 +61,8 @@ def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     plt.legend(('variational, sd=%f' % (sigmaVar), 'bayesian regression sd=%f' % (sigmaSDTrue)))
     plt.show()
     
-def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1):
-    encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e, Lu)
+def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate=0.001):
+    encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e, Lu,learning_rate=learning_rate)
     encoder.initParams()
     encoder.createObjectiveFunction()
     return encoder
@@ -84,8 +84,9 @@ if __name__=='__main__':
     bias=0
     sigma_e=0.5
     Lu=1
+    learning_rate = 0.0001
    
-    iterations = 1000
+    iterations = 10000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
     np.random.seed()
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
@@ -95,11 +96,11 @@ if __name__=='__main__':
     
     batch = np.column_stack((y,X))
  
-    muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch,Lu=Lu)
+    muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch,Lu=Lu, learning_rate = learning_rate)
 
     #plot_cost(encoder)
-    print "final cost"
-    print encoder.lowerBounds[-1]
+    #print "final cost"
+    #print encoder.lowerBounds[-1]
 
     print "variational posterior"
     print encoder.params[0].get_value(), encoder.params[1].get_value()
