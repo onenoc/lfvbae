@@ -79,14 +79,14 @@ def plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue):
     plt.show()
 
 if __name__=='__main__':
-    m = 200
+    m = 20
     n=1
     bias=0
     sigma_e=0.1
     Lu=1
-    learning_rate = 0.00005
+    learning_rate = 0.0001
    
-    iterations = 50000
+    iterations = 60000
     y,X = generate_data(m,n,np.array([5]),bias, sigma_e)
     np.random.seed()
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
@@ -99,8 +99,6 @@ if __name__=='__main__':
     muVar, sigmaVar, encoder = run_VA_five_times(n, bias, m, sigma_e, iterations, batch,Lu=Lu, learning_rate = learning_rate)
 
     #plot_cost(encoder)
-    #print "final cost"
-    #print encoder.lowerBounds[-1]
 
     print "variational posterior"
     print encoder.params[0].get_value(), np.exp(encoder.params[1].get_value())

@@ -34,13 +34,6 @@ class VA:
         logSigma = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
         self.params = [mu,logSigma]
-        self.h = [0.01] * len(self.params) 
-
-    def initH(self,batch):
-        """Compute the gradients and use this to initialize h"""
-        totalGradients = self.getGradients(batch)
-        for i in xrange(len(totalGradients)):
-            self.h[i] += totalGradients[i]*totalGradients[i]
 
     def createObjectiveFunction(self):
         '''
@@ -108,20 +101,27 @@ class VA:
         v = np.random.normal(0, 1,(self.dimTheta,1))
         u = np.random.normal(0, self.sigma_e,(self.m,self.Lu))
         #cost = self.minimizer.minimize(X,y,u,v)
+        cost = self.lowerboundfunction(X=X,y=y,u=u,v=v)
+        old_params = [i.get_value() for i in self.params]
         gradients = self.getGradients(batch)
         self.updateParams(gradients)
+        new_params = [i.get_value() for i in self.params]
+        change = []
+        for i in range(len(self.params)):
+            change.append((new_params[i]-old_params[i])/old_params[i])
+        if abs(max(change)) < 0.0000000005:
+            self.converge=1
         #keep track of min cost and its parameters
-        '''
-        if self.iterations == 0 or cost < self.minCost:
-            self.minCost = cost
-            self.minCostParams = [self.params[0].get_value(), self.params[1].get_value(),np.exp(self.params[2].get_value())]
         self.lowerBounds.append(cost)
+        '''
         if self.iterations > 2 and abs((self.lowerBounds[-1]-self.lowerBounds[-2])/self.lowerBounds[-2]) < 0.001:
             self.converge = 1
         '''
+        '''
         if self.iterations % 300 == 0:
-            #gradient = self.gradientfunction(X=X,y=y,u=u,v=v)
+            print change
             self.print_parameters()
+        '''
         '''
         self.sigmas.append(np.exp(self.params[1].get_value()))
         '''
@@ -150,10 +150,4 @@ class VA:
     def updateParams(self,totalGradients):
         """Update the parameters, taking into account AdaGrad and a prior"""
         for i in xrange(len(self.params)):
-            self.h[i] += totalGradients[i]*totalGradients[i]
-            if i < 5 or (i < 6 and len(self.params) == 12):
-                prior = 0.5*self.params[i].get_value()
-            else:
-                prior = 0
             self.params[i].set_value(self.params[i].get_value()-self.learning_rate*totalGradients[i])
-            #/np.sqrt(self.h[i]))
