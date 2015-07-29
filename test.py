@@ -36,8 +36,7 @@ def run_VA(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate=0.001):
     #dimX, dimTheta, m, n
     encoder = create_encoder(n, bias, m, sigma_e, iterations, batch, Lu, learning_rate = learning_rate)
     i = 0
-    while i<iterations:
-        #encoder.converge==0:
+    while encoder.converge==0:
         encoder.iterate(batch)
         i+=1
     return encoder
@@ -80,14 +79,14 @@ def plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue):
 
 if __name__=='__main__':
     m = 20
-    n=1
+    n=8
     bias=0
-    sigma_e=0.1
+    sigma_e=1
     Lu=1
-    learning_rate = 0.0001
+    learning_rate = 0.0005
    
-    iterations = 60000
-    y,X = generate_data(m,n,np.array([5]),bias, sigma_e)
+    iterations = 20000
+    y,X = generate_data(m,n,np.array([5, 1, 4, 2, 6, 1, 7, 1]),bias, sigma_e)
     np.random.seed()
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
     muSDTrue = muSDTrue[0][0]
@@ -109,5 +108,5 @@ if __name__=='__main__':
     print "MLE mu, sigma"
     print np.dot(np.linalg.inv(np.dot(X.T,X)), np.dot(X.T,y)),np.sqrt((sigma_e**2)*np.linalg.inv(np.dot(X.T,X)))
    
-    plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
+    #plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue)
     #plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue) 

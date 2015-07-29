@@ -21,10 +21,7 @@ class VA:
         self.minCostParams = []
         self.lowerBounds = []
         self.converge = 0
-        self.sigmas = []
         self.learning_rate = learning_rate
-        print "learning rate"
-        print self.learning_rate
 
     def initParams(self):
         '''
@@ -51,12 +48,9 @@ class VA:
         #logLambda = self.params[2]
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
-        f = T.dot(X,mu + T.exp(logSigma)*v)
-        #self.regression_simulator(X,u,v,mu,logSigma)
+        f = self.regression_simulator(X,u,v,mu,logSigma)
 
         logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
-
-        #logLike = -T.sum((y-T.dot(X,mu + T.exp(logSigma)*v))**2)
 
         elbo = (negKL + logLike)
         obj = -elbo
@@ -65,26 +59,8 @@ class VA:
         self.gradientfunction = th.function([X,y,u,v], derivatives, on_unused_input='ignore')
         self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
 
-    def changeParamsAndCalcCost(self, batch, mu='same', sigma='same'):
-        if mu!='same':
-            mu = sharedX(mu, name='mu')
-            self.params[0] = mu
-        if sigma!='same':
-            logSigma = sharedX(np.log(sigma), name='logSigma')
-            self.params[1] = logSigma
-        self.createObjectiveFunction()
-        X = batch[:,1:]
-        y = np.matrix(batch[:,0]).T
-        u = np.random.normal(0, self.sigma_e,(self.m,1))
-        np.random.seed(seed=10)
-        v = np.random.normal(0, 1,(self.dimTheta,1))
-        #np.random.seed(seed=50)
-        ret_val = self.lowerboundfunction(X,y,u,v)
-        np.random.seed()
-        return ret_val
-        
     def regression_simulator(self,X,u,v,mu,logSigma):
-        theta = mu + logSigma*v
+        theta = mu + T.exp(logSigma)*v
         predval = T.dot(X,theta)
         predval = T.addbroadcast(predval,1)
         #+u
@@ -94,37 +70,33 @@ class VA:
         N = sharedX(2000,name='N')
         p1 = sharedX(0.1,name='N')
         p0 = 1/(1+k*x2/N)
+        q = x0*p0/(x0+x1)
+        qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
+        x0n = 
+        x1n =
+        x2n = 
            
     def iterate(self,batch):
         X = batch[:,1:]
         y = np.matrix(batch[:,0]).T
         v = np.random.normal(0, 1,(self.dimTheta,1))
         u = np.random.normal(0, self.sigma_e,(self.m,self.Lu))
-        #cost = self.minimizer.minimize(X,y,u,v)
         cost = self.lowerboundfunction(X=X,y=y,u=u,v=v)
-        old_params = [i.get_value() for i in self.params]
         gradients = self.getGradients(batch)
         self.updateParams(gradients)
-        new_params = [i.get_value() for i in self.params]
-        change = []
-        for i in range(len(self.params)):
-            change.append((new_params[i]-old_params[i])/old_params[i])
-        if abs(max(change)) < 0.0000000005:
-            self.converge=1
-        #keep track of min cost and its parameters
         self.lowerBounds.append(cost)
-        '''
-        if self.iterations > 2 and abs((self.lowerBounds[-1]-self.lowerBounds[-2])/self.lowerBounds[-2]) < 0.001:
-            self.converge = 1
-        '''
-        '''
+        change = 0
+        if len(self.lowerBounds) > 11:
+            l2 = sum(self.lowerBounds[-10:])/(self.m*10)
+            l1 = sum(self.lowerBounds[-11:-1])/(self.m*10)
+            change = abs((l2-l1)/l1)
+            if change<0.0000000025:
+                self.converge = 1
+                print "convergence change"
+                print change
         if self.iterations % 300 == 0:
             print change
             self.print_parameters()
-        '''
-        '''
-        self.sigmas.append(np.exp(self.params[1].get_value()))
-        '''
         self.iterations += 1
 
     def print_parameters(self):
@@ -147,7 +119,7 @@ class VA:
         gradients = self.gradientfunction(X=X,y=y,u=u,v=v)
         return gradients
 
-    def updateParams(self,totalGradients):
+    def updateParams(self,gradients):
         """Update the parameters, taking into account AdaGrad and a prior"""
         for i in xrange(len(self.params)):
-            self.params[i].set_value(self.params[i].get_value()-self.learning_rate*totalGradients[i])
+            self.params[i].set_value(self.params[i].get_value()-gradients[i]/(1/self.learning_rate+self.iterations))
