@@ -3,6 +3,7 @@ import theano as th
 import theano.tensor as T
 from pylearn2.utils import sharedX
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
+from theano.tensor.shared_randomstreams import RandomStreams
 
 class VA:
     def __init__(self, dimX, dimTheta, m, n, sigma_e, Lu=1, learning_rate=0.01):
@@ -66,15 +67,31 @@ class VA:
         #+u
         return predval
 
-    def fisher_wright(x0, x1, x2, k):
+    def start_fisher_wright(self, k=1):
+        x0, x1, x2 = T.dscalars("x0", "x1", "x2")
+        trajectory = T.dmatrix("trajectory")
+        output = self.fisher_wright(x0, x1, x2, k)
+        fisherfunction = th.function([x0, x1, x2], output)
+        x0t = 1600
+        x1t = 380
+        x2t = 20
+        x0t, x1t, x2t = fisherfunction(x0=1600, x1=380, x2=20)
+        trajectory = []
+        for i in range(100):
+            trajectory.append(fisherfunction(x0=x0t, x1=x1t, x2=x2t))
+        return np.asarray(trajectory, dtype=np.float64)
+
+    def fisher_wright(self, x0, x1, x2, k):
         N = sharedX(2000,name='N')
         p1 = sharedX(0.1,name='N')
         p0 = 1/(1+k*x2/N)
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
-        x0n = 
-        x1n =
-        x2n = 
+        srng = RandomStreams(seed=234)
+        x0n = srng.binomial(n=N,p=q)
+        x1n = srng.binomial(n=N-x0n,p=qhat)
+        x2n = N-x0n-x1n
+        return x0n, x1n, x2n
            
     def iterate(self,batch):
         X = batch[:,1:]

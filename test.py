@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 import scipy.stats as stats
 import math
+
 '''
 Run variational inference 
 '''
@@ -54,11 +55,13 @@ def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
     xMax = max(muVar,muSDTrue)+2*max(sigmaVar,np.sqrt(varSDTrue))
     x = np.linspace(xMin,xMax, 1000)
-    plt.title('m= %f, sigma_e=%f, weight=2, no bias, %i iterations' % (m, sigma_e, iterations)) 
-    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar))
-    plt.plot(x,mlab.normpdf(x,muSDTrue,sigmaSDTrue))
-    plt.legend(('variational, sd=%f' % (sigmaVar), 'bayesian regression sd=%f' % (sigmaSDTrue)))
+    plt.title('m= %f, sigma_e=%f, weight=2, no bias' % (m, sigma_e)) 
+    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar),label='variational mu=%f, sd=%f' % (muVar, sigmaVar))
+    plt.plot(x,mlab.normpdf(x,muSDTrue,sigmaSDTrue), label='true mu=%f, sd=%f' % (muSDTrue, sigmaSDTrue))
+    #plt.legend(('variational mu=%f, sd=%f' % (muVar, sigmaVar), 'true posterior mu=%f, sd=%f' % (muSDTrue, sigmaSDTrue)))
+    plt.legend()
     plt.show()
+    plt.savefig('figure.eps')
     
 def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate=0.001):
     encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e, Lu,learning_rate=learning_rate)
@@ -79,14 +82,14 @@ def plot_cost_function(encoder, batch, muSDTrue, sigmaSDTrue):
 
 if __name__=='__main__':
     m = 20
-    n=8
+    n=1
     bias=0
     sigma_e=1
     Lu=1
     learning_rate = 0.0005
    
     iterations = 20000
-    y,X = generate_data(m,n,np.array([5, 1, 4, 2, 6, 1, 7, 1]),bias, sigma_e)
+    y,X = generate_data(m,n,np.array([2]),bias, sigma_e)
     np.random.seed()
     muSDTrue, varSDTrue = true_posterior_standard_normal(n, bias, sigma_e,X,y)
     muSDTrue = muSDTrue[0][0]
