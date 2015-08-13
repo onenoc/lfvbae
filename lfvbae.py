@@ -1,8 +1,6 @@
 import numpy as np
 import theano as th
 import theano.tensor as T
-from pylearn2.utils import sharedX
-from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from theano.tensor.shared_randomstreams import RandomStreams
 
 class VA:
@@ -58,7 +56,6 @@ class VA:
         self.lowerboundfunction = th.function([X, y, u, v], obj, on_unused_input='ignore')
         derivatives = T.grad(obj,self.params)
         self.gradientfunction = th.function([X,y,u,v], derivatives, on_unused_input='ignore')
-        self.minimizer = BatchGradientDescent(objective = obj,params = self.params,inputs = [X,y,u,v],max_iter=1,conjugate=1)
 
     def regression_simulator(self,X,u,v,mu,logSigma):
         theta = mu + T.exp(logSigma)*v
