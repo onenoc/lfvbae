@@ -25,7 +25,7 @@ if __name__=='__main__':
     encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100)
     encoder.initParams()
     encoder.createObjectiveFunction()
-    encoder.f2(np.asarray([20.0, 380.0, 1600.0]), 100, 0.5)
+    print encoder.f2(np.asarray([20.0, 380.0, 1600.0]), 100, 0.5)
     #print encoder.f2(np.asarray([20.0, 380.0, 1600.0]))
     print encoder.test_f(np.asarray([20.0, 380.0, 1600.0]), 0.1)
     

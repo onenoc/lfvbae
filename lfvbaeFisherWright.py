@@ -49,9 +49,7 @@ class VA:
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         k = mu+T.exp(logSigma)*v
         f, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],non_sequences=k, n_steps=i)
-        #f, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],non_sequences=k, n_steps=i)
         self.f2 = th.function(inputs=[xStart, i, v], outputs=f, updates=updates)
-        #self.f2 = th.function(inputs=[xStart], outputs=xStart)
         test = self.fisher_wright(xStart, k)
         self.test_f = th.function([xStart, v], test)
         #logLike = T.sum(y-f)
