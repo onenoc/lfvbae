@@ -2,6 +2,7 @@ import numpy as np
 import theano as th
 import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
+from pylearn2.utils import sharedX
 
 class VA:
     def __init__(self, dimX, dimTheta, m, n, sigma_e, Lu=1, learning_rate=0.01):
@@ -33,7 +34,7 @@ class VA:
 
     def createObjectiveFunction(self):
         '''
-        @description: initialize objective function and minimization function
+        @escription: initialize objective function and minimization function
         @X,y data matrix/vector
         @u random noise for simulator
         @v standard normal for reparametrization trick
@@ -74,11 +75,11 @@ class VA:
         x2t = 20
         x0t, x1t, x2t = fisherfunction(x0=1600, x1=380, x2=20)
         trajectory = []
-        for i in range(100):
-            trajectory.append(fisherfunction(x0=x0t, x1=x1t, x2=x2t))
-        return np.asarray(trajectory, dtype=np.float64)
 
-    def fisher_wright(self, x0, x1, x2, k):
+    def fisher_wright(self, x):
+        x0 = x[0]
+        x1 = x[1]
+        x2 = x[2]
         N = sharedX(2000,name='N')
         p1 = sharedX(0.1,name='N')
         p0 = 1/(1+k*x2/N)

@@ -55,13 +55,14 @@ def plot(muVar, sigmaVar, muSDTrue, sigmaSDTrue):
     xMin = min(muVar,muSDTrue)-2*max(sigmaVar,np.sqrt(varSDTrue))
     xMax = max(muVar,muSDTrue)+2*max(sigmaVar,np.sqrt(varSDTrue))
     x = np.linspace(xMin,xMax, 1000)
-    plt.title('m= %f, sigma_e=%f, weight=2, no bias' % (m, sigma_e)) 
-    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar),label='variational mu=%f, sd=%f' % (muVar, sigmaVar))
-    plt.plot(x,mlab.normpdf(x,muSDTrue,sigmaSDTrue), label='true mu=%f, sd=%f' % (muSDTrue, sigmaSDTrue))
+    #plt.title('m= %f, sigma_e=%f, weight=2, no bias' % (m, sigma_e)) 
+    plt.plot(x,mlab.normpdf(x,muVar,sigmaVar),label='variational mu=%f, sd=%f' % (muVar, sigmaVar),color='blue')
+    plt.plot(x,mlab.normpdf(x,muSDTrue,sigmaSDTrue), ls='--',color='red')
+    #, label='true mu=%f, sd=%f' % (muSDTrue, sigmaSDTrue))
     #plt.legend(('variational mu=%f, sd=%f' % (muVar, sigmaVar), 'true posterior mu=%f, sd=%f' % (muSDTrue, sigmaSDTrue)))
-    plt.legend()
+    #plt.legend()
     plt.show()
-    plt.savefig('figure.eps')
+    #plt.savefig('figure.eps')
     
 def create_encoder(n, bias, m, sigma_e, iterations, batch, Lu=1, learning_rate=0.001):
     encoder = lfvbae.VA(n+bias, n+bias, m, 1, sigma_e, Lu,learning_rate=learning_rate)
@@ -84,7 +85,7 @@ if __name__=='__main__':
     m = 20
     n=1
     bias=0
-    sigma_e=1
+    sigma_e=0.1
     Lu=1
     learning_rate = 0.0005
    
