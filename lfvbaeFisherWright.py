@@ -24,7 +24,7 @@ class VA:
         '''
         @description: parameters to learn
         '''
-        mu = sharedX(np.random.normal(0, 10, (self.dimTheta, 1)), name='mu')
+        mu = sharedX(np.random.uniform(1, 5, (self.dimTheta, 1)), name='mu')
         logSigma = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
         self.params = [mu,logSigma, logLambda]
@@ -48,20 +48,26 @@ class VA:
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         k = mu+T.exp(logSigma)*v
-        f, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],non_sequences=k, n_steps=i)
-        self.f2 = th.function(inputs=[xStart, i, v], outputs=f, updates=updates)
-        test = self.fisher_wright(xStart, k)
-        self.test_f = th.function([xStart, v], test)
-        #logLike = T.sum(y-f)
-        #-self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
+        U1 = T.dmatrix("U2")
+        U2 = T.dmatrix("U2")
+        f, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[U1,U2],non_sequences=k, n_steps=i)
+        #self.f2 = th.function(inputs=[xStart, i, v], outputs=f, updates=updates)
+        #test = self.fisher_wright(xStart, k)
+        #self.test_f = th.function([xStart, v], test)
+        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
 
-        #elbo = (negKL + logLike)
-        #obj = -elbo
-        #self.lowerboundfunction = th.function([xStart, i, y, v], obj, updates=updates, on_unused_input='ignore')
-        #derivatives = T.grad(obj, self.params)
-        #self.gradientfunction = th.function([xStart, i, y, v], derivatives, updates=updates, on_unused_input='ignore')
+        elbo = (negKL + logLike)
+        obj = -elbo
+        self.lowerboundfunction = th.function([xStart, i, y, v], obj, updates=updates, on_unused_input='ignore')
+        derivatives = T.grad(obj, self.params)
+        self.gradientfunction = th.function([xStart, i, y, v], derivatives, updates=updates, on_unused_input='ignore')
 
-    def fisher_wright(self, x, k):
+        #we have i iterations
+        #-Generate 2*N*i uniform distributions beforehand
+        #-use to construct bernoulli
+        #-use to construct binomial
+
+    def fisher_wright(self, un1, un2, x, k):
         x0 = x[0]
         x1 = x[1]
         x2 = x[2]
@@ -70,10 +76,21 @@ class VA:
         p0 = 1/(1+k*x2/N)
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
-        srng = RandomStreams()
-        x0n = srng.binomial(n=N,p=q)
+        #srng = RandomStreams()
+        x0n = binomial(q, un1, N)
+        x1n = binomial(qhat, un2, N-x0n)
+        #srng.binomial(n=N,p=q)
         #srng2 = RandomStreams(seed=234)
-        x1n = srng.binomial(n=N-x0n,p=qhat)
+        #x1n = srng.binomial(n=N-x0n,p=qhat)
         x2n = N-x0n-x1n
         xOut = T.stack(x0n,x1n,x2n)
         return T.flatten(xOut)
+
+    def bernoulli(p, u):
+        return T.le(u,p)
+
+    def binomial(p, un, n):
+        results, updates = th.scan(fn=bernoulli, outputs_info=None, sequences=un[0:n], non_sequences=p)
+        binomial = results.sum()
+        return binomial
+
