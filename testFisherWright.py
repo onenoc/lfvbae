@@ -22,24 +22,31 @@ if __name__=='__main__':
     bias = 0
     m = 20
     learning_rate = 0.0005
+    N_fw = 2000.0
     encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100)
     encoder.initParams()
     encoder.createObjectiveFunction()
     #print encoder.f2(np.asarray([20.0, 380.0, 1600.0]), 100, 0.5)
     #print encoder.test_f(np.asarray([20.0, 380.0, 1600.0]), 0.1)
     
+    i = 100
 
     x0, x1, x2 = 20.0, 380.0, 1600.0
     k=5.0
     trajectory = []
-    for i in range(20):
+    for j in range(i):
         x0, x1, x2 = fisher_wright_np(x0, x1, x2, k)
         trajectory.append((x0, x1, x2))
     
     trajectory = np.asarray(trajectory)
-    print trajectory
+    xStart = np.asarray([20.0, 380.0, 1600.0])
+    y = trajectory
+    v = np.random.normal(0,1)
 
-    encoder.lowerboundfunction(np.asarray([20.0, 380.0, 1600.0]), 20, trajectory, 0.5)
-    encoder.gradientfunction(np.asarray([20.0, 380.0, 1600.0]), 20, trajectory, 0.5)
+    U1 = np.random.uniform(0, 1, (i, N_fw))
+    U2 = np.random.uniform(0, 1, (i, N_fw))
+
+    encoder.lowerboundfunction(xStart, i, y, v, U1, U2)
+    encoder.gradientfunction(xStart, i, y, v, U1, U2)
     #what's wrong is that some values of k don't give valid outputs
 

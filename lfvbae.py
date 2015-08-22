@@ -65,32 +65,6 @@ class VA:
         #+u
         return predval
 
-    def start_fisher_wright(self, k=1):
-        x0, x1, x2 = T.dscalars("x0", "x1", "x2")
-        trajectory = T.dmatrix("trajectory")
-        output = self.fisher_wright(x0, x1, x2, k)
-        fisherfunction = th.function([x0, x1, x2], output)
-        x0t = 1600
-        x1t = 380
-        x2t = 20
-        x0t, x1t, x2t = fisherfunction(x0=1600, x1=380, x2=20)
-        trajectory = []
-
-    def fisher_wright(self, x):
-        x0 = x[0]
-        x1 = x[1]
-        x2 = x[2]
-        N = sharedX(2000,name='N')
-        p1 = sharedX(0.1,name='N')
-        p0 = 1/(1+k*x2/N)
-        q = x0*p0/(x0+x1)
-        qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
-        srng = RandomStreams(seed=234)
-        x0n = srng.binomial(n=N,p=q)
-        x1n = srng.binomial(n=N-x0n,p=qhat)
-        x2n = N-x0n-x1n
-        return x0n, x1n, x2n
-           
     def iterate(self,batch):
         X = batch[:,1:]
         y = np.matrix(batch[:,0]).T

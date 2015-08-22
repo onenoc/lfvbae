@@ -5,7 +5,7 @@ from theano.tensor.shared_randomstreams import RandomStreams
 from pylearn2.utils import sharedX
 
 class VA:
-    def __init__(self, dimTheta, m, learning_rate=0.01, i=100):
+    def __init__(self, dimTheta, m, learning_rate=0.01, i=100, N_fw=2000):
         '''
         @param m: number of samples
         @param n: dimension
@@ -19,12 +19,13 @@ class VA:
         self.converge = 0
         self.learning_rate = learning_rate
         self.i = i
+        self.N_fw = 2000
 
     def initParams(self):
         '''
         @description: parameters to learn
         '''
-        mu = sharedX(np.random.uniform(1, 5, (self.dimTheta, 1)), name='mu')
+        mu = sharedX(np.random.uniform(3, 10, (self.dimTheta, 1)), name='mu')
         logSigma = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
         self.params = [mu,logSigma, logLambda]
@@ -50,17 +51,14 @@ class VA:
         k = mu+T.exp(logSigma)*v
         U1 = T.dmatrix("U2")
         U2 = T.dmatrix("U2")
-        f, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[U1,U2],non_sequences=k, n_steps=i)
-        #self.f2 = th.function(inputs=[xStart, i, v], outputs=f, updates=updates)
-        #test = self.fisher_wright(xStart, k)
-        #self.test_f = th.function([xStart, v], test)
+        results, updates = th.scan(fn=fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[U1,U2],non_sequences=k, n_steps=i)
         logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
 
         elbo = (negKL + logLike)
         obj = -elbo
-        self.lowerboundfunction = th.function([xStart, i, y, v], obj, updates=updates, on_unused_input='ignore')
+        self.lowerboundfunction = th.function([xStart, i, y, v, U1, U2], obj, updates=updates, on_unused_input='ignore')
         derivatives = T.grad(obj, self.params)
-        self.gradientfunction = th.function([xStart, i, y, v], derivatives, updates=updates, on_unused_input='ignore')
+        self.gradientfunction = th.function([xStart, i, y, v, U1, U2], derivatives, updates=updates, on_unused_input='ignore')
 
         #we have i iterations
         #-Generate 2*N*i uniform distributions beforehand
@@ -77,8 +75,8 @@ class VA:
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
         #srng = RandomStreams()
-        x0n = binomial(q, un1, N)
-        x1n = binomial(qhat, un2, N-x0n)
+        x0n = self.binomial(q, un1, T.cast(N, 'int32'))
+        x1n = self.binomial(qhat, un2, T.cast(N, 'N-x0n'))
         #srng.binomial(n=N,p=q)
         #srng2 = RandomStreams(seed=234)
         #x1n = srng.binomial(n=N-x0n,p=qhat)
@@ -86,11 +84,11 @@ class VA:
         xOut = T.stack(x0n,x1n,x2n)
         return T.flatten(xOut)
 
-    def bernoulli(p, u):
+    def bernoulli(self, u,p):
         return T.le(u,p)
 
-    def binomial(p, un, n):
-        results, updates = th.scan(fn=bernoulli, outputs_info=None, sequences=un[0:n], non_sequences=p)
+    def binomial(self, p, un, n):
+        results, updates = th.scan(fn=self.bernoulli, outputs_info=None, sequences=un[0:n], non_sequences=p)
         binomial = results.sum()
         return binomial
 
