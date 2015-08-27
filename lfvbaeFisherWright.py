@@ -50,17 +50,17 @@ class VA:
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
         self.k = mu+T.exp(logSigma)*v
-        U1 = T.dmatrix("U2")
-        U2 = T.dmatrix("U2")
-        results, updates = th.scan(fn=self.fisher_wright, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[U1,U2], n_steps=i)
+        V1 = T.dvector("V2")
+        V2 = T.dvector("V2")
+        results, updates = th.scan(fn=self.fisher_wright_normal_approx, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[V1,V2], n_steps=i)
         f = results
         SSE = T.sum((y-f)**2)
         #logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
         #elbo = (negKL + logLike)
         obj = SSE
-        self.lowerboundfunction = th.function([xStart, i, y, v, U1, U2], obj, updates=updates, on_unused_input='ignore')
+        self.lowerboundfunction = th.function([xStart, i, y, v, V1, V2], obj, updates=updates, on_unused_input='ignore')
         derivatives = T.grad(obj, self.params)
-        self.gradientfunction = th.function([xStart, i, y, v, U1, U2], derivatives, updates=updates, on_unused_input='ignore')
+        self.gradientfunction = th.function([xStart, i, y, v, V1, V2], derivatives, updates=updates, on_unused_input='ignore')
 
     def create_trajectory(self,xStartInput,kInput):
         U1 = T.dmatrix("U2")
@@ -87,20 +87,20 @@ class VA:
         xOut = T.stack(x0n,x1n,x2n)
         return T.flatten(xOut)
 
-    def fisher_wright_normal_approx(v1,v2,x,k):
+    def fisher_wright_normal_approx(self,v1,v2,x):
         x0 = x[0]
         x1 = x[1]
         x2 = x[2]
         N = sharedX(2000.0,name='N')
         p1 = sharedX(0.1,name='N')
-        p0 = 1/(1+k*x2/N)
+        p0 = 1/(1+self.k*x2/N)
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
         x0n = N*q+v1*T.sqrt((N*q*(1-q)))
         x1n = (N-x0n)*qhat+v2*T.sqrt(((N-x0n)*qhat*(1-qhat)))
         x2n = N-x0n-x1n
         xOut = T.stack(x0n,x1n,x2n)
-        return xOut
+        return T.flatten(xOut)
 
     def bernoulli(self, u,p):
         return T.le(u,p)
@@ -111,13 +111,10 @@ class VA:
         return binomial
 
     def iterate(self,xStart, y):
-        '''
-        self.gradientfunction = th.function([xStart, i, y, v, U1, U2], derivatives, updates=updates, on_unused_input='ignore')
-        '''
         v = np.random.normal(0, 1)
-        U1 = np.random.uniform(0,1,(self.i,self.N_fw))
-        U2 = np.random.uniform(0,1,(self.i,self.N_fw))
-        cost = self.lowerboundfunction(xStart,self.i,y,v,U1,U2)
+        V1 = np.random.normal(0,1,self.i)
+        V2 = np.random.normal(0,1,self.i)
+        cost = self.lowerboundfunction(xStart,self.i,y,v,V1,V2)
         gradients = self.getGradients(xStart,y)
         self.updateParams(gradients)
         self.lowerBounds.append(cost)
@@ -149,9 +146,9 @@ class VA:
 
     def getGradients(self,xStart, y):
         v = np.random.normal(0, 1)
-        U1 = np.random.uniform(0,1,(self.i,self.N_fw))
-        U2 = np.random.uniform(0,1,(self.i,self.N_fw))
-        gradients = self.gradientfunction(xStart,self.i,y,v,U1,U2)
+        V1 = np.random.uniform(0,1,self.i)
+        V2 = np.random.uniform(0,1,self.i)
+        gradients = self.gradientfunction(xStart,self.i,y,v,V1,V2)
         return gradients
 
     def updateParams(self,gradients):

@@ -43,15 +43,13 @@ if __name__=='__main__':
     y = trajectory
     v = np.random.normal(0,1)
 
-    U1 = np.random.uniform(0, 1, (i, N_fw))
-    U2 = np.random.uniform(0, 1, (i, N_fw))
+    V1 = np.random.uniform(0, 1, i)
+    V2 = np.random.uniform(0, 1, i)
 
     #trajectory2 = encoder.create_trajectory(xStart,k)
     for j in range(100):
         encoder.iterate(xStart,y)
-    '''
-    encoder.lowerboundfunction(xStart, i, y, v, U1, U2)
-    encoder.gradientfunction(xStart, i, y, v, U1, U2)
-    '''
+    #encoder.lowerboundfunction(xStart, i, y, v, V1, V2)
+    #encoder.gradientfunction(xStart, i, y, v, V1, V2)
     #what's wrong is that some values of k don't give valid outputs
 
