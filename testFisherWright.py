@@ -21,7 +21,7 @@ if __name__=='__main__':
     n = 1
     bias = 0
     m = 20
-    learning_rate = 0.0005
+    learning_rate = 0.01
     N_fw = 2000.0
     encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100)
     encoder.initParams()
@@ -46,7 +46,12 @@ if __name__=='__main__':
     U1 = np.random.uniform(0, 1, (i, N_fw))
     U2 = np.random.uniform(0, 1, (i, N_fw))
 
+    #trajectory2 = encoder.create_trajectory(xStart,k)
+    for j in range(100):
+        encoder.iterate(xStart,y)
+    '''
     encoder.lowerboundfunction(xStart, i, y, v, U1, U2)
     encoder.gradientfunction(xStart, i, y, v, U1, U2)
+    '''
     #what's wrong is that some values of k don't give valid outputs
 
