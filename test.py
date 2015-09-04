@@ -87,7 +87,7 @@ if __name__=='__main__':
     bias=0
     sigma_e=0.1
     Lu=1
-    learning_rate = 0.0005
+    learning_rate = 0.0001
    
     iterations = 20000
     y,X = generate_data(m,n,np.array([2]),bias, sigma_e)

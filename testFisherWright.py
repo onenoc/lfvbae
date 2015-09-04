@@ -5,9 +5,9 @@ from matplotlib import pyplot as plt
 import matplotlib.mlab as mlab
 import scipy.stats as stats
 import math
+import sys
 
-def fisher_wright_np(x0, x1, x2, k=1.0):
-    N = 2000.0
+def fisher_wright_np(x0, x1, x2, N,k=1.0):
     p1 = 0.1
     p0 = 1/(1+k*x2/N)
     q = x0*p0/(x0+x1)
@@ -15,31 +15,41 @@ def fisher_wright_np(x0, x1, x2, k=1.0):
     x0n = np.random.binomial(N,q)
     x1n = np.random.binomial(N-x0n,qhat)
     x2n = N-x0n-x1n
+    #print "q is"
+    #print q
+    #print N*q,N*(1-q)
+    #print (N-x0n)*qhat,(N-x0n)*(1-qhat)
+    if N*q<5:
+        print "Nq too small"
+    if N*(1-q)<5:
+        print "N*(1-q) too small"
+    if (N-x0n)*qhat<5:
+        print "(N-x0n)*qhat too small"
+    if (N-x0n)*qhat<5:
+        print "(N-x0n)*qhat too small"
     return x0n, x1n, x2n
 
 if __name__=='__main__':
     n = 1
     bias = 0
     m = 20
-    learning_rate = 0.01
-    N_fw = 2000.0
-    encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100)
+    learning_rate = 0.0000001
+    N_fw = 20000.0
+    encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100,N_fw=N_fw)
     encoder.initParams()
     encoder.createObjectiveFunction()
-    #print encoder.f2(np.asarray([20.0, 380.0, 1600.0]), 100, 0.5)
-    #print encoder.test_f(np.asarray([20.0, 380.0, 1600.0]), 0.1)
     
     i = 100
 
-    x0, x1, x2 = 20.0, 380.0, 1600.0
-    k=5.0
+    x0, x1, x2 = 1*N_fw/5, 1*N_fw/5, 2*N_fw/5
+    k=4
     trajectory = []
     for j in range(i):
-        x0, x1, x2 = fisher_wright_np(x0, x1, x2, k)
+        x0, x1, x2 = fisher_wright_np(x0, x1, x2, N_fw,k)
         trajectory.append((x0, x1, x2))
     
     trajectory = np.asarray(trajectory)
-    xStart = np.asarray([20.0, 380.0, 1600.0])
+    xStart = np.asarray([x0,x1,x2])
     y = trajectory
     v = np.random.normal(0,1)
 
@@ -47,7 +57,7 @@ if __name__=='__main__':
     V2 = np.random.uniform(0, 1, i)
 
     #trajectory2 = encoder.create_trajectory(xStart,k)
-    for j in range(100):
+    for j in range(200000):
         encoder.iterate(xStart,y)
     #encoder.lowerboundfunction(xStart, i, y, v, V1, V2)
     #encoder.gradientfunction(xStart, i, y, v, V1, V2)

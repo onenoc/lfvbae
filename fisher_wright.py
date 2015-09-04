@@ -9,7 +9,7 @@ def fisher_wright(un1, un2, x, k):
     x0 = x[0]
     x1 = x[1]
     x2 = x[2]
-    N = sharedX(2000.0,name='N')
+    N = sharedX(2000000.0,name='N')
     p1 = sharedX(0.1,name='N')
     p0 = 1/(1+k*x2/N)
     q = x0*p0/(x0+x1)
@@ -68,7 +68,7 @@ resultsNA, updatesNA = th.scan(fn=fisher_wright_normal_approx, outputs_info=[{'i
 
 f=th.function(inputs=[i, xStart, U1, U2, k],outputs=results,updates=updates)
 fNA=th.function(inputs=[i, xStart, v1, v2, k],outputs=resultsNA,updates=updatesNA)
-N_fw = 2000
+N_fw = 2000000
 ir=100.0
 U1r = np.random.uniform(0, 1, (ir, N_fw))
 U2r = np.random.uniform(0, 1, (ir, N_fw))
@@ -82,7 +82,7 @@ dSS_dk = T.grad(SS,k)
 calc_SS = th.function([i, xStart, v1,v2, k],outputs=SS,updates=updates)
 gradient_SS = th.function([i, xStart, v1, v2, k],outputs=dSS_dk,updates=updates)
 
-trajectory = f(ir,np.asarray([20.0, 380.0, 1600.0], dtype=np.float64), U1r, U2r, 5.0)
+trajectory = f(ir,np.asarray([20000.0, 380000.0, 1600000.0], dtype=np.float64), U1r, U2r, 5.0)
 trajectoryNA = fNA(ir,np.asarray([20.0, 380.0, 1600.0], dtype=np.float64),v1r,v2r,5.0)
 
 print (calc_SS(ir,np.asarray([20.0, 380.0, 1600.0], dtype=np.float64), U1r, U2r, 4.50001)-calc_SS(ir,np.asarray([20.0, 380.0, 1600.0], dtype=np.float64), U1r, U2r, 4.5))/0.00001
