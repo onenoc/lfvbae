@@ -33,7 +33,7 @@ if __name__=='__main__':
     n = 1
     bias = 0
     m = 20
-    learning_rate = 0.0000001
+    learning_rate = 0.0001
     N_fw = 20000.0
     encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100,N_fw=N_fw)
     encoder.initParams()
@@ -42,7 +42,7 @@ if __name__=='__main__':
     i = 100
 
     x0, x1, x2 = 1*N_fw/5, 1*N_fw/5, 2*N_fw/5
-    k=4
+    k=4.0
     trajectory = []
     for j in range(i):
         x0, x1, x2 = fisher_wright_np(x0, x1, x2, N_fw,k)
@@ -57,8 +57,16 @@ if __name__=='__main__':
     V2 = np.random.uniform(0, 1, i)
 
     #trajectory2 = encoder.create_trajectory(xStart,k)
-    for j in range(200000):
+    while encoder.converge==0:
         encoder.iterate(xStart,y)
+
+    mu = encoder.params[0].get_value()
+    sigma = np.exp(encoder.params[1].get_value())
+
+    print "estimate"
+    print (6*np.exp(mu)+1)/(np.exp(mu)+1)
+    print "95% interval"
+    print (6*np.exp(mu+2*sigma)+1)/(np.exp(mu+2*sigma)+1), (6*np.exp(mu-2*sigma)+1)/(np.exp(mu-2*sigma)+1)
     #encoder.lowerboundfunction(xStart, i, y, v, V1, V2)
     #encoder.gradientfunction(xStart, i, y, v, V1, V2)
     #what's wrong is that some values of k don't give valid outputs

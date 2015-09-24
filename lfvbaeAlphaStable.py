@@ -24,8 +24,9 @@ class VA:
         '''
         @description: parameters to learn
         '''
-        mu = sharedX(np.random.normal(0, 10, (self.dimTheta, 1)), name='mu')
-        logSigma = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='logSigma')
+        self.pi = sharedX(3.14159265359,name='pi')
+        mu = sharedX(np.random.uniform(0, 1, (self.dimTheta, 1)), name='mu')
+        logSigma = sharedX(np.random.uniform(0, 0.000000001, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
         self.params = [mu,logSigma,logLambda]
 
@@ -36,8 +37,8 @@ class VA:
         @u random noise for simulator
         @v standard normal for reparametrization trick
         '''
-        X = T.dmatrices("X")
-        W, U = T.dvectors("W","U")
+        y = T.dmatrix("y")
+        W, U, V = T.dvectors("W","U","V")
 
         mu = self.params[0]
         logSigma = self.params[1]
@@ -45,37 +46,39 @@ class VA:
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
 
-        result,updates = th.map(fn=self.alpha_stable,sequences=[W,U],n_steps=self.m)
+        results,updates = th.map(fn=self.alpha_stable,sequences=[W,U],non_sequences=[V])
         f = results
 
-        logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)/self.Lu
+        logLike = f
+        #T.sum((y-f)**2)
+        #-self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
 
-        elbo = (negKL + logLike)
-        obj = -elbo
-        self.lowerboundfunction = th.function([X,W,U], obj, updates=updates,on_unused_input='ignore')
-        derivatives = T.grad(obj,self.params)
-        self.gradientfunction = th.function([X,W,U], derivatives, updates=updates,on_unused_input='ignore')
+        #elbo = (negKL + logLike)
+        obj = -logLike
+        self.lowerboundfunction = th.function([y,W,U,V], obj, updates=updates,on_unused_input='ignore')
+        #derivatives = T.grad(obj,self.params)
+        #self.gradientfunction = th.function([y,W,U,V], derivatives, updates=updates,on_unused_input='ignore')
 
     def alpha_stable(self,w,u,v):
         mu = self.params[0]
         logSigma = self.params[1]
-        alpha = mu[0]+T.exp(logSigma[0])v[0]
-        beta = mu[1]+T.exp(logSigma[1])v[1]
-        gamma = mu[2]+T.exp(logSigma[2])v[2]
-        delta = mu[3]++T.exp(logSigma[3])v[3]
-        S_var = S(alpha,beta)
-        B_var = B(alpha,beta)
+        alpha = mu[0]+T.exp(logSigma[0])*v[0]
+        beta = mu[1]+T.exp(logSigma[1])*v[1]
+        #gamma = mu[2]+T.exp(logSigma[2])*v[2]
+        #delta = mu[3]+T.exp(logSigma[3])*v[3]
+        S_var = self.S(alpha,beta)
+        B_var = self.B(alpha,beta)
         first = T.sin(alpha*(u+B_var)/(T.cos(u)**(alpha/2)))
         second = T.cos(u-alpha*(u+B_var))/w
         return S_var*first*(second**((1-alpha)/alpha))
 
     def S(self, alpha, beta):
-        inner = 1+(beta**2)*(T.tan(T.pi*alpha/2)**2)
+        inner = 1+(beta**2)*(T.tan(self.pi*alpha/2)**2)
         S = inner**(-1/(2*alpha))
         return S
 
     def B(self, alpha, beta):
-        return T.arctan(beta*T.tan(T.pi*alpha/2))
+        return T.arctan(beta*T.tan(self.pi*alpha/2))
 
     def iterate(self,batch):
         X = batch[:,1:]

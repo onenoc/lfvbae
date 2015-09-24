@@ -16,13 +16,14 @@ def fy(alpha,beta,w,u):
     second = np.cos(u-alpha*(u+B_var))/w
     return S_var*first*(second**((1-alpha)/alpha))
 
-samples = []
-alpha = 0.5
-beta = 0
-for i in range(1000):
-    w = np.random.exponential()
-    u = np.random.uniform(-np.pi/2,np.pi/2)
-    samples.append(fy(alpha,beta,w,u))
-
-plt.hist(samples,100)
-plt.show()
+if __name__ == '__main__':
+    samples = []
+    alpha = 0.5
+    beta = 0
+    for i in range(1000):
+        w = np.random.exponential()
+        u = np.random.uniform(-np.pi/2,np.pi/2)
+        samples.append(fy(alpha,beta,w,u))
+    
+    plt.hist(samples,100)
+    plt.show()

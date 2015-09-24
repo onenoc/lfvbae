@@ -27,7 +27,7 @@ class VA:
         '''
         @description: parameters to learn
         '''
-        mu = sharedX(np.random.uniform(4, 4.1, (self.dimTheta, 1)), name='mu')
+        mu = sharedX(np.random.uniform(0, 5, (self.dimTheta, 1)), name='mu')
         logSigma = sharedX(np.random.uniform(0, 0.25, (self.dimTheta, 1)), name='logSigma')
         logLambda = sharedX(np.random.uniform(0, 10), name='logLambda')
         self.params = [mu, logSigma,logLambda]
@@ -85,6 +85,7 @@ class VA:
         x2 = x[2]
         N = sharedX(self.N_fw,name='N')
         p1 = sharedX(0.1,name='N')
+        k = (6*T.exp(self.k)+1)/(T.exp(self.k)+1)
         p0 = 1/(1+self.k*x2/N)
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
@@ -100,7 +101,8 @@ class VA:
         x2 = x[2]
         N = sharedX(self.N_fw,name='N')
         p1 = sharedX(0.1,name='N')
-        p0 = 1/(1+self.k*x2/N)
+        k = (6*T.exp(self.k)+1)/(T.exp(self.k)+1)
+        p0 = 1/(1+k*x2/N)
         q = x0*p0/(x0+x1)
         qhat = (x0*(1-p0)+x1*p1)/((x0+x1)*(1-q))
         x0n = N*q+v1*T.sqrt((N*q*(1-q)))
@@ -126,16 +128,14 @@ class VA:
         self.updateParams(gradients)
         self.lowerBounds.append(cost)
         change = 0
-        '''
         if len(self.lowerBounds) > 11:
             l2 = sum(self.lowerBounds[-10:])/(self.m*10)
             l1 = sum(self.lowerBounds[-11:-1])/(self.m*10)
             change = abs((l2-l1)/l1)
-            if change<0.0025:
+            if change<0.00000025:
                 self.converge = 1
                 print "convergence change"
                 print change
-        '''
         if self.iterations %100==0:
             print "gradients"
             print gradients
@@ -150,8 +150,9 @@ class VA:
             sigma = np.exp(self.params[1].get_value())
             print "mu, sigma"
             print mu, sigma
+            k_tild = mu+v*sigma
             print "k"
-            print mu+v*sigma
+            print (6*np.exp(k_tild)+1)/(np.exp(k_tild)+1)
             sys.exit()
         self.iterations += 1
 
@@ -160,9 +161,13 @@ class VA:
         print "cost"
         print self.lowerBounds[-1]
         print "mu"
-        print self.params[0].get_value()
+        mu = self.params[0].get_value()
+        print (6*np.exp(mu)+1)/(np.exp(mu)+1)
         print "sigma"
+        sigma = np.exp(self.params[1].get_value())
         print np.exp(self.params[1].get_value())
+        print "95% interval"
+        print (6*np.exp(mu+2*sigma)+1)/(np.exp(mu+2*sigma)+1), (6*np.exp(mu-2*sigma)+1)/(np.exp(mu-2*sigma)+1)
         print "lambda"
         print np.exp(self.params[2].get_value())
 
