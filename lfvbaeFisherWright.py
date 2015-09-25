@@ -132,7 +132,7 @@ class VA:
             l2 = sum(self.lowerBounds[-10:])/(self.m*10)
             l1 = sum(self.lowerBounds[-11:-1])/(self.m*10)
             change = abs((l2-l1)/l1)
-            if change<0.00000025:
+            if change<0.00000001:
                 self.converge = 1
                 print "convergence change"
                 print change

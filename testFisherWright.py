@@ -33,7 +33,7 @@ if __name__=='__main__':
     n = 1
     bias = 0
     m = 20
-    learning_rate = 0.0001
+    learning_rate = 0.003
     N_fw = 20000.0
     encoder = lfvbae.VA(n, m, learning_rate=learning_rate, i=100,N_fw=N_fw)
     encoder.initParams()
@@ -42,7 +42,7 @@ if __name__=='__main__':
     i = 100
 
     x0, x1, x2 = 1*N_fw/5, 1*N_fw/5, 2*N_fw/5
-    k=4.0
+    k=2.0
     trajectory = []
     for j in range(i):
         x0, x1, x2 = fisher_wright_np(x0, x1, x2, N_fw,k)
@@ -62,9 +62,14 @@ if __name__=='__main__':
 
     mu = encoder.params[0].get_value()
     sigma = np.exp(encoder.params[1].get_value())
+    lambd = np.exp(encoder.params[2].get_value())
 
     print "estimate"
     print (6*np.exp(mu)+1)/(np.exp(mu)+1)
+    print "sigma"
+    print sigma
+    print "lambda"
+    print "lambda"
     print "95% interval"
     print (6*np.exp(mu+2*sigma)+1)/(np.exp(mu+2*sigma)+1), (6*np.exp(mu-2*sigma)+1)/(np.exp(mu-2*sigma)+1)
     #encoder.lowerboundfunction(xStart, i, y, v, V1, V2)
