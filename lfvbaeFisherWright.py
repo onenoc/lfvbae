@@ -56,18 +56,24 @@ class VA:
         V2 = T.dvector("V2")
         results, updates = th.scan(fn=self.fisher_wright_normal_approx, outputs_info=[{'initial':xStart,'taps':[-1]}],sequences=[V1,V2], n_steps=i)
         f = results
-        SSE = T.sum((y-f)**2)
+
         logLike = -self.m*(0.5 * np.log(2 * np.pi) + logLambda)-0.5*T.sum((y-f)**2)/(T.exp(logLambda)**2)
         part2 = f
         #0.5*T.sum((y-f)**2)
         #/(T.exp(logLambda)**2)
         elbo = (negKL + logLike)
         obj = -elbo
+        test1 = y[0:self.i/4,:].sum(axis=0)/(self.i/4)
+        test2 = y[self.i/4:self.i/2].sum(axis=0)/(self.i/4)
+        self.test = th.function([xStart, i, y, v, V1, V2],test,on_unused_input='ignore')
         self.part2 = th.function([xStart, i, y, v, V1, V2], part2, updates=updates, on_unused_input='ignore')
         self.logLike = th.function([xStart, i, y, v, V1, V2], logLike, updates=updates, on_unused_input='ignore')
         self.lowerboundfunction = th.function([xStart, i, y, v, V1, V2], obj, updates=updates, on_unused_input='ignore')
         derivatives = T.grad(obj, self.params)
         self.gradientfunction = th.function([xStart, i, y, v, V1, V2], derivatives, updates=updates, on_unused_input='ignore')
+
+    def summary_statistics(self, y):
+        s1 = y[0:25,:].sum(axis=0)/(0.25*self.i)
 
     def create_trajectory(self,xStartInput,kInput):
         U1 = T.dmatrix("U2")
@@ -137,6 +143,8 @@ class VA:
                 print "convergence change"
                 print change
         if self.iterations %100==0:
+            print "test"
+            print self.test(xStart,self.i,y,v,V1,V2)
             print "gradients"
             print gradients
             #print change
