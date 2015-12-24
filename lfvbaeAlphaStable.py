@@ -51,7 +51,7 @@ class VA:
         mu = self.params[0]
         #logSigma = self.params[1]
         logSigma = sharedX(0.6)
-        logLambda = sharedX(1.5)
+        logLambda = sharedX(0)
         #self.params[2]
 
         negKL = 0.5*self.dimTheta+0.5*T.sum(2*logSigma - mu ** 2 - T.exp(logSigma) ** 2)
