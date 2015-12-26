@@ -1,49 +1,101 @@
 import autograd.numpy as np
 from autograd import grad
 from scipy import special
-from scipy import stats
+import math
+from matplotlib import pyplot as plt
+import seaborn as sns
 
-#tested to make sure same posterior gives KL 0
-def beta_KL(alpha1,beta1,alpha2,beta2):
-    return np.log(special.beta(alpha2,beta2)/special.beta(alpha1,beta1)-(alpha2-alpha1)*special.polygamma(0,alpha1)-(beta2-beta1)*special.polygamma(0,beta1)+(alpha2-alpha1+beta2-beta1)*special.polygamma(0,alpha1+beta1))
+def iterate(params,n,k,i):
+    a=40./(1+i)
+    U1=np.random.uniform(0,1,10)
+    U2=np.random.uniform(0,1,10)
+    grad_lower_bound = grad(lower_bound)
+    grad_params = grad_lower_bound(params,n,k,U1,U2)
+    params = params+a*grad_params
+    return params
 
-def lower_bound(params,uniforms):
-    alpha = params[0]
-    beta = params[1]
-    sorted_uniforms = np.sort(uniforms)
-    theta = sorted_uniforms[alpha-1]
-    KL = beta_KL(alpha,beta,1,1)
+#true posterior is beta(21,11)
 
-def expectation(a,b,n,Y,U):
-    theta = generate_kumaraswamy(a,b,U)
-    E = stats.binom.pmf(Y,n,theta)
+def test():
+    U1=np.random.uniform(0,1,100)
+    U2=np.random.uniform(0,1,100)
+    n=30
+    k=20
+    params = np.array([1,1])
+    grad_KL = grad(KL_via_sampling)
+    grad_KL_params =0
+
+def lower_bound(params,n,k,U1,U2):
+    E = expectation(params,n,k,U1)
+    KL = KL_via_sampling(params,1,1,U2)
+    return E-KL
+
+#Correct (probably)
+def expectation(params,n,k,U):
+    theta = generate_kumaraswamy(params,U)
+    E = np.log(binomial_pmf(n,k,theta))
+    for i in range(len(theta)):
+        E = np.log(binomial_pmf(n,k,theta[i]))
     E = np.mean(E)
     return E
 
-def iterate(params,i):
-    a = 1/(500+i)
-    alpha = params[0]
-    beta = params[1]
-    n = beta+1-alpha
-    uniforms = np.random.uniform(0,1,n)
-    grad_lower_bound = grad(lower_bound)
-    params = params+grad_lower_bound(params,uniforms)*
+def binomial_pmf(n,k,theta):
+    return nCr(n,k)*(theta**k)*((1-theta)**(n-k))
 
-def generate_random_beta(alpha,beta):
-    n=beta+alpha-1
-    uniforms = np.random.uniform(0,1,n)
-    sorted_uniforms = np.sort(uniforms)
-    return sorted_uniforms[alpha-1] 
 
-def generate_kumaraswamy(a,b,u):
+def nCr(n, k):
+    """
+        A fast way to calculate binomial coefficients by Andrew Dalke (contrib).
+        """
+    if 0 <= k <= n:
+        ntok = 1
+        ktok = 1
+        for t in xrange(1, min(k, n - k) + 1):
+            ntok *= n
+            ktok *= t
+            n -= 1
+        return ntok // ktok
+    else:
+        return 0
+
+#Correct
+def generate_kumaraswamy(params,u):
+    a=params[0]
+    b=params[1]
     return (1-(1-u)**(1./b))**(1./a)
 
-def kumaraswamy_pdf(theta,a,b):
+#Correct
+def kumaraswamy_pdf(theta,params):
+    a=params[0]
+    b=params[1]
     return a*b*(theta**(a-1))*((1-theta**a)**(b-1))
 
-def KL_via_sampling(a1,b1,a2,b2,U):
-    theta = generate_kumaraswamy(a1,b1,U)
-    E = np.log(kumaraswamy_pdf(theta,a1,b1)/kumaraswamy_pdf(theta,a2,b2))
+#Correct
+def KL_via_sampling(params,a2,b2,U):
+    a1 = params[0]
+    b1 = params[1]
+    theta = generate_kumaraswamy(params,U)
+    E = np.log(kumaraswamy_pdf(theta,params)/kumaraswamy_pdf(theta,np.array([a2,b2])))
     E = np.mean(E)
     return E
 
+if __name__=='__main__':
+    n = 30
+    k = 9
+    params = np.random.uniform(10,50,2)
+    for i in range(10000):
+        params = iterate(params,n,k,i)
+        if i%100==0:
+            print params
+            U1=np.random.uniform(0,1,10)
+            U2=np.random.uniform(0,1,10)
+            print lower_bound(params,n,k,U1,U2)
+
+
+    plt.clf()
+    U = np.random.uniform(0,1,100000)
+    beta_samples = np.random.beta(k+1,n-k+1,100000)
+    kuma_samples = generate_kumaraswamy(params,U)
+    sns.distplot(beta_samples)
+    sns.distplot(kuma_samples)
+    plt.show()
