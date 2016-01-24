@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 def iterate(params,n,k,i):
-    a=40./(1+i)
+    a=1./(5+i)
     U1=np.random.uniform(0,1,10)
     U2=np.random.uniform(0,1,10)
     grad_lower_bound = grad(lower_bound)
@@ -82,16 +82,14 @@ def KL_via_sampling(params,a2,b2,U):
 if __name__=='__main__':
     n = 30
     k = 9
-    params = np.random.uniform(10,50,2)
-    for i in range(10000):
+    params = np.random.uniform(1,50,2)
+    for i in range(1000):
         params = iterate(params,n,k,i)
         if i%100==0:
             print params
-            U1=np.random.uniform(0,1,10)
-            U2=np.random.uniform(0,1,10)
+            U1=np.random.uniform(0,1,1000)
+            U2=np.random.uniform(0,1,1000)
             print lower_bound(params,n,k,U1,U2)
-
-
     plt.clf()
     U = np.random.uniform(0,1,100000)
     beta_samples = np.random.beta(k+1,n-k+1,100000)
