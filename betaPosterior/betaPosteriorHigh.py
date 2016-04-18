@@ -12,11 +12,7 @@ def iterate(params,n,k,i,m,v):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    U1=np.random.uniform(0,1,1)
-    U2=np.random.uniform(0,1,S)
-    sn=np.random.normal(0,1,1)
-    grad_lower_bound = grad(lower_bound)
-    g = grad_lower_bound(params,n,k,U1,U2,sn)
+    g = grad_lower_bound(params,n,k)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
@@ -26,25 +22,34 @@ def iterate(params,n,k,i,m,v):
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
-def lower_bound(params,n,k,U1,U2,v):
-    E = expectation(params,n,k,U1,v)
-    KL = KL_via_sampling(params,1,1,U2)
-    return E-KL
+def grad_lower_bound(params,n,k):
+    grad_expectation=params(n,k,L)
 
-#Correct (probably)
-def expectation(params,n,k,U1,v):
-    theta = generate_kumaraswamy(params,U1)
-    e = np.exp(params[2])
-    #E = np.log(binomial_pmf(n,k,theta))
-    E=0
-    for i in range(len(theta)):
-        E+=abc_log_likelihood(n,k,theta[i],i,v,e)
-    #E = np.log(likelihood(n,k,theta,0))
-    #return  np.mean(E)
-    return E/len(theta)
+def grad_expectation(params,n,k,v,L):
+    '''
+    @L: number of samples
+    '''
+    E = 0
+    for i in range(L):
+        #sample theta from kuma
+        theta = generate_kumaraswamy(params)
+        #take derivative of at that theta value
+        grad_kuma_pdf = grad(kumaraswamy_pdf)
+        #take log ABC-likelihood at that theta value
+        f = abc_log_likelihood(n,k,theta,e)
+        E+= f*grad_kuma_pdf(theta,params)
+    
+#Correct
+def generate_kumaraswamy(params):
+    u = np.random.normal(0,1)
+    a=params[0]
+    b=params[1]
+    return (1-(1-u)**(1./b))**(1./a)
 
-def likelihood(n,k,theta,i):
-    return binomial_pmf(n,k,theta)
+def kumaraswamy_pdf(theta,params):
+    a=params[0]
+    b=params[1]
+    return a*b*(theta**(a-1))*((1-theta**a)**(b-1))
 
 def abc_log_likelihood(n,k,theta,i,v,e):
     N = len(v)
@@ -55,10 +60,10 @@ def abc_log_likelihood(n,k,theta,i,v,e):
     #ll = np.log(np.sum(np.exp(log_kernels)))
     #ll = np.log(1./N)+ll
     #print ll
-    ll = log_kernels 
+    ll = log_kernels
     return ll
-    
-def simulator(n,theta,v):
+
+def simulator(n,theta):
     a = n
     c = 0
     b = 1
@@ -66,24 +71,13 @@ def simulator(n,theta,v):
     p=theta
     mu = n*p
     sig2 = np.sqrt(n*p*(1-p))
-    gaussian = mu+sig2*v
+    gaussian = np.random.normal(mu,sig2)
     #if gaussian<0:
     #    gaussian=0
     #    print "a 0"
     gaussian = np.clip(gaussian,0,n)
     return gaussian
 
-def log_abc_kernel(x,n,k,e):
-    '''
-    @summary: kernel density, we use normal here
-    @param y: observed data
-    @param x: simulator output, often the mean of kernel density
-    @param e: bandwith of density
-    '''
-    e = 0.1
-    Sx = x
-    Sy = k
-    return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2)) 
 
 def binomial_pmf(n,k,theta):
     return nCr(n,k)*(theta**k)*((1-theta)**(n-k))
@@ -104,18 +98,6 @@ def nCr(n, k):
         return 0
 
 #Correct
-def generate_kumaraswamy(params,u):
-    a=params[0]
-    b=params[1]
-    return (1-(1-u)**(1./b))**(1./a)
-
-#Correct
-def kumaraswamy_pdf(theta,params):
-    a=params[0]
-    b=params[1]
-    return a*b*(theta**(a-1))*((1-theta**a)**(b-1))
-
-#Correct
 def KL_via_sampling(params,a2,b2,U):
     a1 = params[0]
     b1 = params[1]
@@ -123,8 +105,6 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.log(kumaraswamy_pdf(theta,params)/kumaraswamy_pdf(theta,np.array([a2,b2])))
     E = np.mean(E)
     return E
-
-#def run_ABC(start_params,n,k,num_samples,num_particles,num_iterations):
 
 
 if __name__=='__main__':
@@ -161,11 +141,3 @@ if __name__=='__main__':
     #plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
     plt.legend()
     plt.show()
-    '''
-    U = np.random.uniform(0,1,100000)
-    beta_samples = np.random.beta(k+1,n-k+1,100000)
-    kuma_samples = generate_kumaraswamy(params[0:2],U)
-    sns.distplot(beta_samples)
-    sns.distplot(kuma_samples)
-    plt.show()
-    '''

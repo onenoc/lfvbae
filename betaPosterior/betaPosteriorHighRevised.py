@@ -8,14 +8,13 @@ from matplotlib import pyplot as plt
 #import seaborn as sns
 
 def iterate(params,n,k,i,m,v):
-    S = 1
+    S = 50
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
     U1=np.random.uniform(0,1,1)
     U2=np.random.uniform(0,1,S)
     sn=np.random.normal(0,1,1)
-    grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,n,k,U1,U2,sn)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -26,64 +25,30 @@ def iterate(params,n,k,i,m,v):
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
-def lower_bound(params,n,k,U1,U2,v):
-    E = expectation(params,n,k,U1,v)
-    KL = KL_via_sampling(params,1,1,U2)
-    return E-KL
+def grad_lower_bound(params,n,k,U1,U2,v):
+    grad_E = grad_expectation(params,n,k,U1,U2,v)
+    grad_KL = grad(KL_via_sampling)
+    return (grad_E+grad_KL(params,1,1,U2))/2
 
-#Correct (probably)
-def expectation(params,n,k,U1,v):
-    theta = generate_kumaraswamy(params,U1)
-    e = np.exp(params[2])
-    #E = np.log(binomial_pmf(n,k,theta))
+def grad_expectation(params,n,k,U1,U2,v):
     E=0
-    for i in range(len(theta)):
-        E+=abc_log_likelihood(n,k,theta[i],i,v,e)
-    #E = np.log(likelihood(n,k,theta,0))
-    #return  np.mean(E)
-    return E/len(theta)
+    theta = generate_kumaraswamy(params,U2)
+    grad_kuma_pdf = grad(kumaraswamy_pdf)
+    f=likelihood(n,k,theta,i)
+    g = grad_kuma_pdf(theta,params)
+    E = f*g
+    return np.mean(E)
+    #for i in range(len(U2)):
+    #    theta = generate_kumaraswamy(params,U2[i])
+    #    grad_kuma_pdf = grad(kumaraswamy_pdf)
+    #    f=likelihood(n,k,theta,i)
+    #    #abc_log_likelihood(n,k,theta,0.01)
+    #    E+=f*grad_kuma_pdf(theta,params)
+    #return E/len(U2)
+
 
 def likelihood(n,k,theta,i):
     return binomial_pmf(n,k,theta)
-
-def abc_log_likelihood(n,k,theta,i,v,e):
-    N = len(v)
-    x = simulator(n,theta,v)
-    log_kernels = log_abc_kernel(x,n,k,e)
-    #print log_kernels
-    #ll = misc.logsumexp(log_kernels)
-    #ll = np.log(np.sum(np.exp(log_kernels)))
-    #ll = np.log(1./N)+ll
-    #print ll
-    ll = log_kernels 
-    return ll
-    
-def simulator(n,theta,v):
-    a = n
-    c = 0
-    b = 1
-    d = 1
-    p=theta
-    mu = n*p
-    sig2 = np.sqrt(n*p*(1-p))
-    gaussian = mu+sig2*v
-    #if gaussian<0:
-    #    gaussian=0
-    #    print "a 0"
-    gaussian = np.clip(gaussian,0,n)
-    return gaussian
-
-def log_abc_kernel(x,n,k,e):
-    '''
-    @summary: kernel density, we use normal here
-    @param y: observed data
-    @param x: simulator output, often the mean of kernel density
-    @param e: bandwith of density
-    '''
-    e = 0.1
-    Sx = x
-    Sy = k
-    return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2)) 
 
 def binomial_pmf(n,k,theta):
     return nCr(n,k)*(theta**k)*((1-theta)**(n-k))
@@ -124,8 +89,6 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.mean(E)
     return E
 
-#def run_ABC(start_params,n,k,num_samples,num_particles,num_iterations):
-
 
 if __name__=='__main__':
     n = 100
@@ -134,7 +97,7 @@ if __name__=='__main__':
     params = np.append(params,1.)
     m = np.array([0.,0.,0.])
     v = np.array([0.,0.,0.])
-    for i in range(5000):
+    for i in range(50000):
         params,m,v = iterate(params,n,k,i,m,v)
         if i%100==0:
             print params
@@ -169,3 +132,4 @@ if __name__=='__main__':
     sns.distplot(kuma_samples)
     plt.show()
     '''
+
