@@ -8,12 +8,12 @@ from matplotlib import pyplot as plt
 import pdb
 
 M=15
-Sy=1
+Sy=2
 e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
-    S = 10
-    simulations = 5
+    S = 30
+    simulations = 30
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
@@ -126,7 +126,7 @@ if __name__=='__main__':
     lower_bounds = []
     iterating=1
     i = 1
-    for i in range(1,2000):
+    while iterating==1:
         params,m,v,LB = iterate(params,i,m,v)
         i+=1
         #U1=np.random.uniform(0,1,30)
@@ -136,14 +136,15 @@ if __name__=='__main__':
         if len(lower_bounds)>105:
             K = 10
             lb2 = np.mean(np.array(lower_bounds[-K:]))
-            lb1 = np.mean(np.array(lower_bounds[-K-1:]))
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
             if abs(lb2-lb1)<1e-5:
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
                 print params
                #print m,v
-    print params
+    print 'convergence achieved'
+    print params, i
     x = np.linspace(0.001,2,100)
     plt.plot(x,lognormal_pdf(x,params))
     plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
