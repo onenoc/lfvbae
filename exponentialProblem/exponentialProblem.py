@@ -12,8 +12,8 @@ Sy=1
 e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
-    S = 50
-    simulations =50
+    S = 10
+    simulations =1
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
@@ -52,11 +52,11 @@ def lower_bound(params,U1,U2,v,i):
 def expectation(params,U1,v,i):
     theta = generate_lognormal(params,U1)
     E=0
-    for j in range(len(theta)):
-        E+=abc_log_likelihood(theta[j],j,v,i)
-    #E = np.log(likelihood(theta))
-    #return  np.mean(E)
-    return E/len(theta)
+    #for j in range(len(theta)):
+    #    E+=abc_log_likelihood(theta[j],j,v,i)
+    E = np.log(likelihood(theta))
+    return  np.mean(E)
+    #return E/len(theta)
 
 def likelihood(theta):
     log_like= M*np.log(theta)-theta*M*Sy
@@ -68,7 +68,6 @@ def abc_log_likelihood(theta,j,v,i):
     N = len(v)
     x, std = simulator(theta,v)
     log_kernels = log_abc_kernel(x,i,std)
-    print log_kernels
     if len(log_kernels)>1:
         log_kernels_max = log_kernels.max()
         #ll = misc.logsumexp(log_kernels)
@@ -95,7 +94,7 @@ def log_abc_kernel(x,i,std):
     if e_method==0:
         e = std/np.sqrt(M)
     elif e_method==1:
-        e = max(30./i,0.05)
+        e = max(30./i,0.01)
     else:
         e = e_val
     Sx = x
@@ -142,42 +141,40 @@ if __name__=='__main__':
     iterating=1
     i = 1
     K = 10
-    for i in range(100):
-        all_gradients.append(gradient_lower_bound(params,10,10))
-    plt.hist(all_gradients)
-    plt.show()
+    #for i in range(100):
+    #    all_gradients.append(gradient_lower_bound(params,10,10))
+    #plt.hist(all_gradients)
+    #plt.show()
 
-    #while iterating==1:
-    #    params,m,v,LB = iterate(params,i,m,v)
-    #    if params[1]<=0:
-    #        params = np.random.uniform(0,1,2)
-    #    i+=1
-    #    #U1=np.random.uniform(0,1,30)
-    #    #U2=np.random.uniform(0,1,50)
-    #    #U3=np.random.uniform(0,1,100)
-    #    lower_bounds.append(LB)
-    #    if len(lower_bounds)>K+1:
-    #        lb2 = np.mean(np.array(lower_bounds[-K:]))
-    #        lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
-    #        if abs(lb2-lb1)<1e-5:
-    #            iterating = 0
-    #        if i%10==0:
-    #            print abs(lb2-lb1)
-    #    if i%10==0:
-    #        print params
-    #       #print m,v
-    #print 'convergence after %i iterations' % (i)
-    #print params
-    #x = np.linspace(0.001,2,100)
-    #plt.plot(x,lognormal_pdf(x,params))
-    #plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
-    #plt.show()
-    #plt.plot(lower_bounds)
-    #plt.ylim((-10,0))
-    #plt.show()
-    #plt.plot(all_gradients)
-    #plt.ylim((-50,50))
-    #plt.show()
+    while iterating==1:
+        params,m,v,LB = iterate(params,i,m,v)
+        if params[1]<=0:
+            params = np.random.uniform(0,1,2)
+        i+=1
+        #U1=np.random.uniform(0,1,30)
+        #U2=np.random.uniform(0,1,50)
+        #U3=np.random.uniform(0,1,100)
+        lower_bounds.append(LB)
+        if len(lower_bounds)>K+1:
+            lb2 = np.mean(np.array(lower_bounds[-K:]))
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            if abs(lb2-lb1)<1e-5:
+                iterating = 0
+            if i%10==0:
+                print abs(lb2-lb1)
+        if i%10==0:
+            print params
+           #print m,v
+    print 'convergence after %i iterations' % (i)
+    print params
+    x = np.linspace(0.001,2,100)
+    plt.plot(x,lognormal_pdf(x,params))
+    plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
+    plt.show()
+    plt.plot(lower_bounds)
+    plt.show()
+    plt.plot(all_gradients)
+    plt.show()
     #all_gradients = np.asarray(all_gradients)
     #running_var = []
     #for i in range(1,len(all_gradients)):
