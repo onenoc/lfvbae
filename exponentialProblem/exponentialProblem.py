@@ -8,17 +8,17 @@ from matplotlib import pyplot as plt
 import pdb
 
 M=15
-Sy=2
+Sy=1
 e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
-    S = 30
-    simulations = 30
+    S = 50
+    simulations = 50
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
     U1=np.random.normal(0,1,S)
-    U2=np.random.uniform(0,1,S)
+    U2=np.random.uniform(0,1,S*50)
     sn=np.random.uniform(0,1,simulations*M)
     grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,U1,U2,sn,i)
@@ -28,7 +28,9 @@ def iterate(params,i,m,v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 0.25
+    #a = 0.25
+    a = 5*(S**(1./2))*1e-2
+    a = 5*(S)*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
     #params = params+1/(10+i)*g
     return params,m,v,LB
@@ -42,14 +44,16 @@ def lower_bound(params,U1,U2,v,i):
 def expectation(params,U1,v,i):
     theta = generate_lognormal(params,U1)
     E=0
-    for j in range(len(theta)):
-        E+=abc_log_likelihood(theta[j],j,v,i)
-    #E = np.log(likelihood(theta))
-    #return  np.mean(E)
+    #for j in range(len(theta)):
+    #    E+=abc_log_likelihood(theta[j],j,v,i)
+    E = np.log(likelihood(theta))
+    return  np.mean(E)
     return E/len(theta)
 
 def likelihood(theta):
-    return theta*np.exp(-theta*Sy)
+    log_like= M*np.log(theta)-theta*M*Sy
+    like = np.exp(log_like)
+    return like
 
 def abc_log_likelihood(theta,j,v,i):
     N = len(v)
@@ -64,7 +68,7 @@ def abc_log_likelihood(theta,j,v,i):
     else:
         ll = log_kernels
     return ll
-    
+
 def simulator(theta,v):
     #handle more than one simulation per sample
     v = v.reshape(-1,M)
@@ -126,6 +130,7 @@ if __name__=='__main__':
     lower_bounds = []
     iterating=1
     i = 1
+    K = 100
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v)
         i+=1
@@ -133,18 +138,18 @@ if __name__=='__main__':
         #U2=np.random.uniform(0,1,50)
         #U3=np.random.uniform(0,1,100)
         lower_bounds.append(LB)
-        if len(lower_bounds)>105:
-            K = 10
+        if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:]))
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
             if abs(lb2-lb1)<1e-5:
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
-                print params
-               #print m,v
-    print 'convergence achieved'
-    print params, i
+        if i%10==0:
+            print params
+           #print m,v
+    print 'convergence after %i iterations' % (i)
+    print params
     x = np.linspace(0.001,2,100)
     plt.plot(x,lognormal_pdf(x,params))
     plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
