@@ -13,7 +13,7 @@ e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
     S = 50
-    simulations =50
+    simulations = 200
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
@@ -63,12 +63,10 @@ def likelihood(theta):
     like = np.exp(log_like)
     return like
 
-#The variance problem is here
 def abc_log_likelihood(theta,j,v,i):
     N = len(v)
     x, std = simulator(theta,v)
     log_kernels = log_abc_kernel(x,i,std)
-    print log_kernels
     if len(log_kernels)>1:
         log_kernels_max = log_kernels.max()
         #ll = misc.logsumexp(log_kernels)
@@ -93,7 +91,7 @@ def log_abc_kernel(x,i,std):
     @param e: bandwith of density
     '''
     if e_method==0:
-        e = std/np.sqrt(M)
+        e = std/M
     elif e_method==1:
         e = max(30./i,0.05)
     else:
@@ -106,7 +104,6 @@ def generate_lognormal(params,u):
     mu = params[0]
     sigma = params[1]
     Y = mu+sigma*u
-    #Y=np.random.randn(len(u))*sigma+mu
     X = np.exp(Y)
     return X
 
@@ -143,7 +140,7 @@ if __name__=='__main__':
     i = 1
     K = 10
     for i in range(100):
-        all_gradients.append(gradient_lower_bound(params,10,10))
+        all_gradients.append(gradient_lower_bound(params,10,1))
     plt.hist(all_gradients)
     plt.show()
 
