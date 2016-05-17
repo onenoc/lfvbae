@@ -159,14 +159,17 @@ def avabc(params,num_samples,num_particles,K,convergence):
 if __name__=='__main__':
     paramsStart = np.random.uniform(0,1,2)
     iterating=1
-    K = 10
-    num_samples = 10
-    num_particles = 1
+    Kavabc = 50
+    Kvbil = 50
+    num_samplesAVABC = 10
+    num_particlesAVABC = 10
+    num_samplesVBIL = 10
+    num_particlesVBIL = 10
     #plot_gradients(params,num_samples,num_particles)
-    convergenceAVABC = 1e-4
-    convergenceVBIL = 5e-5
-    params, lower_bounds, i = avabc(paramsStart,num_samples,num_particles, K,convergenceAVABC)
-    paramsBBVI, lower_boundsBBVI, iBBVI = BBVI(paramsStart,num_samples,num_particles,K,convergenceVBIL)
+    convergenceAVABC = 1e-5
+    convergenceVBIL = 1e-5
+    params, lower_bounds, i = avabc(paramsStart,num_samplesAVABC,num_particlesAVABC, Kavabc,convergenceAVABC)
+    paramsBBVI, lower_boundsBBVI, iBBVI = BBVI(paramsStart,num_samplesVBIL,num_particlesVBIL,Kvbil,convergenceVBIL)
     print 'AVABC convergence after %i iterations' % (i)
     print 'BBVI convergence after %i iterations' % (iBBVI)
     x = np.linspace(0.001,2,100)
@@ -175,14 +178,14 @@ if __name__=='__main__':
     plt.plot(x,lognormal_pdf(x,paramsBBVI),label='BBVI',color='red')
     plt.plot(x,lognormal_pdf(x,params),label='AVABC',color='blue')
     plt.legend()
-    plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samples,num_particles))
+    plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samplesAVABC,num_particlesAVABC))
     plt.show()
     plt.plot(lower_boundsBBVI,label='BBVI',color='red')
     plt.plot(lower_bounds,label='AVABC',color='blue')
     plt.legend(loc=4)
     #plt.ylim((-1000/(num_samples*num_particles),0))
     plt.ylim((-100,0))
-    plt.title('Lower Bound Convergence Plot, %i samples, %i particles' % (num_samples,num_particles))
+    plt.title('Lower Bound Convergence Plot, %i samples, %i particles' % (num_samplesAVABC,num_particlesAVABC))
     plt.show()
     #plt.plot(all_gradients)
     #plt.show()
