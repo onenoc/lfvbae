@@ -12,8 +12,8 @@ Sy=1
 e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
-    S = 100
-    simulations =100
+    S = 10
+    simulations =10
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
@@ -28,11 +28,8 @@ def iterate(params,i,m,v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    #a = 0.25
     a = 5*(S**(1./4))*1e-2
-    #a = 5*(S)*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
-    #params = params+1./(10+i)*g
     return params,m,v,LB
 
 def gradient_lower_bound(params,num_samples,num_simulations):
@@ -46,32 +43,28 @@ def gradient_lower_bound(params,num_samples,num_simulations):
 def lower_bound(params,U1,U2,v,i):
     E = expectation(params,U1,v,i)
     KL = KL_via_sampling(params,U2)
-    #KL=0
     return E-KL
 
 def expectation(params,U1,v,i):
     theta = generate_lognormal(params,U1)
     E=0
-    #for j in range(len(theta)):
-    #    E+=abc_log_likelihood(theta[j],j,v,i)
-    E = np.log(likelihood(theta))
-    return  np.mean(E)
-    #return E/len(theta)
+    for j in range(len(theta)):
+        E+=abc_log_likelihood(theta[j],j,v,i)
+    #E = np.log(likelihood(theta))
+    #return  np.mean(E)
+    return E/len(theta)
 
 def likelihood(theta):
     log_like= M*np.log(theta)-theta*M*Sy
     like = np.exp(log_like)
     return like
 
-#The variance problem is here
 def abc_log_likelihood(theta,j,v,i):
     N = len(v)
     x, std = simulator(theta,v)
     log_kernels = log_abc_kernel(x,i,std)
     if len(log_kernels)>1:
         log_kernels_max = log_kernels.max()
-        #ll = misc.logsumexp(log_kernels)
-        #ll = np.log(np.sum(np.exp(log_kernels)))
         ll = np.log(np.sum(np.exp(log_kernels-log_kernels_max)))+log_kernels_max
         ll = np.log(1./N)+ll
     else:
@@ -119,7 +112,7 @@ def lognormal_pdf(theta,params):
 #Correct
 def KL_via_sampling(params,U):
     theta = generate_lognormal(params,U)
-    alpha = 2.
+    alpha = 2
     beta = 0.5
     muPrior = np.log(alpha/beta)
     sigmaPrior = np.log(np.sqrt(alpha/(beta**2)))
@@ -141,10 +134,10 @@ if __name__=='__main__':
     iterating=1
     i = 1
     K = 10
-    #for i in range(100):
-    #    all_gradients.append(gradient_lower_bound(params,10,10))
-    #plt.hist(all_gradients)
-    #plt.show()
+    for i in range(100):
+        all_gradients.append(gradient_lower_bound(params,10,10))
+    plt.hist(all_gradients)
+    plt.show()
 
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v)
@@ -158,7 +151,7 @@ if __name__=='__main__':
         if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:]))
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
-            if abs(lb2-lb1)<1e-5:
+            if abs(lb2-lb1)<5e-5:
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
