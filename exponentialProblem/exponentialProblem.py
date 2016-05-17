@@ -12,8 +12,8 @@ Sy=1
 e_method = 0
 e_val = 0.5
 def iterate(params,i,m,v):
-    S = 10
-    simulations =1
+    S = 100
+    simulations =100
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
