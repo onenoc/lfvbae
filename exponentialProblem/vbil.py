@@ -26,6 +26,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v_h = v/(1-(b_2**(i+1)))
     S = num_samples
     a = 5*(S**(1./4))*1e-2
+    #a = 5*(S)*1e-2
     all_gradients.append(g)
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v,LB
@@ -56,7 +57,9 @@ def log_variational(params, theta):
 
 #correct
 def loglognormal_np( logx, mu, stddev ):
-    log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
+    
+    log_pdf = np.log(np.exp(-(logx-mu)**2/(2*(stddev**2)))/(np.exp(logx)*stddev*np.sqrt(2*np.pi)))
+    #log_pdf = -np.log(stddev) - 0.5*pow( (logx-mu)/stddev, 2.0 )-logx-0.5*np.log(2*np.pi)
     return log_pdf
 
 #correct
@@ -165,7 +168,7 @@ def plot_gradients(params,num_samples,num_particles):
     plt.hist(all_gradients)
     plt.show()
 
-def BBVI(params,num_samples,num_particles,K):
+def BBVI(params,num_samples,num_particles,K,convergence):
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     iterating = 1
@@ -178,11 +181,11 @@ def BBVI(params,num_samples,num_particles,K):
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
         if i%10==0:
-            print params
+            print params, LB
         if len(lower_bounds)>K+1:
             lb2= np.mean(np.array(lower_bounds[-K:]))
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
-            if abs(lb2-lb1)<5e-5:
+            if abs(lb2-lb1)<convergence:
                 iterating = 0
     return params,lower_bounds,i
 

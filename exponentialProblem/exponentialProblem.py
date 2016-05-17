@@ -6,6 +6,9 @@ from scipy import misc
 import math
 from matplotlib import pyplot as plt
 import pdb
+from vbil import BBVI, sample_theta
+from vbil import lower_bound as lower_boundBBVI
+
 all_gradients = []
 M=15
 Sy=1
@@ -19,13 +22,16 @@ def iterate(params,i,m,v,num_samples,num_particles):
     sn=np.random.uniform(0,1,num_particles*M)
     grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,U1,sn,i)
-    LB = lower_bound(params,U1,sn,i)
+    samples = sample_theta(params,num_samples)
+    LB = lower_boundBBVI(params,samples,num_particles)
+    #lower_bound(params,U1,sn,i)
     all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 5*(num_samples**(1./4))*1e-2
+    #a = 5*(num_samples)*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v,LB
 
@@ -127,7 +133,7 @@ def plot_gradients(params,num_samples,num_particles):
     plt.hist(all_gradients)
     plt.show()
 
-def avabc(params,num_samples,num_particles,K):
+def avabc(params,num_samples,num_particles,K,convergence):
     lower_bounds = []
     iterating = 1
     i=0
@@ -138,37 +144,48 @@ def avabc(params,num_samples,num_particles,K):
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
         i+=1
-        lower_bounds.append(LB)
+        lower_bounds.append(-LB)
         if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:]))
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
-            if abs(lb2-lb1)<5e-5:
+            if abs(lb2-lb1)<convergence:
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
         if i%10==0:
-            print params
+            print params, LB
     return params, lower_bounds,i
 
 if __name__=='__main__':
-    params = np.random.uniform(0,1,2)
+    paramsStart = np.random.uniform(0,1,2)
     iterating=1
     K = 10
-
-    num_samples = 100
-    num_particles = 100
+    num_samples = 10
+    num_particles = 1
     #plot_gradients(params,num_samples,num_particles)
-    params, lower_bounds, i = avabc(params,num_samples,num_particles, K) 
-    print 'convergence after %i iterations' % (i)
-    print params
+    convergenceAVABC = 1e-4
+    convergenceVBIL = 5e-5
+    params, lower_bounds, i = avabc(paramsStart,num_samples,num_particles, K,convergenceAVABC)
+    paramsBBVI, lower_boundsBBVI, iBBVI = BBVI(paramsStart,num_samples,num_particles,K,convergenceVBIL)
+    print 'AVABC convergence after %i iterations' % (i)
+    print 'BBVI convergence after %i iterations' % (iBBVI)
     x = np.linspace(0.001,2,100)
-    plt.plot(x,lognormal_pdf(x,params))
-    plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior')
+
+    plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior',color='green')
+    plt.plot(x,lognormal_pdf(x,paramsBBVI),label='BBVI',color='red')
+    plt.plot(x,lognormal_pdf(x,params),label='AVABC',color='blue')
+    plt.legend()
+    plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samples,num_particles))
     plt.show()
-    plt.plot(lower_bounds)
+    plt.plot(lower_boundsBBVI,label='BBVI',color='red')
+    plt.plot(lower_bounds,label='AVABC',color='blue')
+    plt.legend(loc=4)
+    #plt.ylim((-1000/(num_samples*num_particles),0))
+    plt.ylim((-100,0))
+    plt.title('Lower Bound Convergence Plot, %i samples, %i particles' % (num_samples,num_particles))
     plt.show()
-    plt.plot(all_gradients)
-    plt.show()
+    #plt.plot(all_gradients)
+    #plt.show()
     #all_gradients = np.asarray(all_gradients)
     #running_var = []
     #for i in range(1,len(all_gradients)):
