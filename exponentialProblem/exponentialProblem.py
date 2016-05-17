@@ -155,8 +155,8 @@ if __name__=='__main__':
     iterating=1
     K = 10
 
-    num_samples = 10
-    num_particles = 10
+    num_samples = 100
+    num_particles = 100
     #plot_gradients(params,num_samples,num_particles)
     params, lower_bounds, i = avabc(params,num_samples,num_particles, K) 
     print 'convergence after %i iterations' % (i)
