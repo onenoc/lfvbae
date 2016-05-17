@@ -127,26 +127,17 @@ def plot_gradients(params,num_samples,num_particles):
     plt.hist(all_gradients)
     plt.show()
 
-if __name__=='__main__':
-    params = np.random.uniform(0,1,2)
+def avabc(params,num_samples,num_particles,K):
+    lower_bounds = []
+    iterating = 1
+    i=0
     m = np.array([0.,0.])
     v = np.array([0.,0.])
-    lower_bounds = []
-    iterating=1
-    i = 1
-    K = 10
-
-    num_samples = 10
-    num_particles = 10
-    plot_gradients(params,num_samples,num_particles)
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v,num_samples,num_particles)
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
         i+=1
-        #U1=np.random.uniform(0,1,30)
-        #U2=np.random.uniform(0,1,50)
-        #U3=np.random.uniform(0,1,100)
         lower_bounds.append(LB)
         if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:]))
@@ -157,6 +148,17 @@ if __name__=='__main__':
                 print abs(lb2-lb1)
         if i%10==0:
             print params
+    return params, lower_bounds,i
+
+if __name__=='__main__':
+    params = np.random.uniform(0,1,2)
+    iterating=1
+    K = 10
+
+    num_samples = 10
+    num_particles = 10
+    #plot_gradients(params,num_samples,num_particles)
+    params, lower_bounds, i = avabc(params,num_samples,num_particles, K) 
     print 'convergence after %i iterations' % (i)
     print params
     x = np.linspace(0.001,2,100)
