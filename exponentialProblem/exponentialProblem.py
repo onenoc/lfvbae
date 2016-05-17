@@ -11,38 +11,34 @@ M=15
 Sy=1
 e_method = 0
 e_val = 0.5
-def iterate(params,i,m,v):
-    S = 10
-    simulations =10
+def iterate(params,i,m,v,num_samples,num_particles):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    U1=np.random.normal(0,1,S)
-    U2=np.random.uniform(0,1,S)
-    sn=np.random.uniform(0,1,simulations*M)
+    U1=np.random.normal(0,1,num_samples)
+    sn=np.random.uniform(0,1,num_particles*M)
     grad_lower_bound = grad(lower_bound)
-    g = grad_lower_bound(params,U1,U2,sn,i)
-    LB = lower_bound(params,U1,U2,sn,i)
+    g = grad_lower_bound(params,U1,sn,i)
+    LB = lower_bound(params,U1,sn,i)
     all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 5*(S**(1./4))*1e-2
+    a = 5*(num_samples**(1./4))*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v,LB
 
 def gradient_lower_bound(params,num_samples,num_simulations):
     U1=np.random.normal(0,1,num_samples)
-    U2=np.random.uniform(0,1,num_samples)
     sn=np.random.uniform(0,1,num_simulations*M)
     grad_lower_bound = grad(lower_bound)
-    g = grad_lower_bound(params,U1,U2,sn,i)
+    g = grad_lower_bound(params,U1,sn,i)
     return g
 
-def lower_bound(params,U1,U2,v,i):
+def lower_bound(params,U1,v,i):
     E = expectation(params,U1,v,i)
-    KL = KL_via_sampling(params,U2)
+    KL = KL_via_sampling(params,U1)
     return E-KL
 
 def expectation(params,U1,v,i):
@@ -98,7 +94,6 @@ def generate_lognormal(params,u):
     mu = params[0]
     sigma = params[1]
     Y = mu+sigma*u
-    #Y=np.random.randn(len(u))*sigma+mu
     X = np.exp(Y)
     return X
 
@@ -126,6 +121,12 @@ def moving_average(a, n=10) :
     ret[n:] = ret[n:] - ret[:-n]
     return ret[n - 1:] / n
 
+def plot_gradients(params,num_samples,num_particles):
+    for i in range(100):
+        all_gradients.append(gradient_lower_bound(params,10,10))
+    plt.hist(all_gradients)
+    plt.show()
+
 if __name__=='__main__':
     params = np.random.uniform(0,1,2)
     m = np.array([0.,0.])
@@ -134,13 +135,12 @@ if __name__=='__main__':
     iterating=1
     i = 1
     K = 10
-    for i in range(100):
-        all_gradients.append(gradient_lower_bound(params,10,10))
-    plt.hist(all_gradients)
-    plt.show()
 
+    num_samples = 10
+    num_particles = 10
+    plot_gradients(params,num_samples,num_particles)
     while iterating==1:
-        params,m,v,LB = iterate(params,i,m,v)
+        params,m,v,LB = iterate(params,i,m,v,num_samples,num_particles)
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
         i+=1
@@ -157,7 +157,6 @@ if __name__=='__main__':
                 print abs(lb2-lb1)
         if i%10==0:
             print params
-           #print m,v
     print 'convergence after %i iterations' % (i)
     print params
     x = np.linspace(0.001,2,100)
