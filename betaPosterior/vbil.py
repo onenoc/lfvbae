@@ -11,7 +11,7 @@ all_gradients = []
 lower_bounds = []
 M=10
 n=100
-k=70
+k=30
 Sy=k
 def iterate(params,num_samples,num_particles,i,m,v):
     b_1 = 0.9
@@ -26,7 +26,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
     params = params+a*m_h/(np.sqrt(v_h)+e)
-    params = params+a*g
+    #params = params+a*g
     return params,m,v, LB
 
 def grad_KL(params, num_samples, num_particles):
@@ -106,7 +106,7 @@ def log_abc_kernel(x):
         @param e: bandwith of density
         '''
     #e=std/np.sqrt(M)
-    e = 0.5
+    e = 0.1
     Sx = x
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 

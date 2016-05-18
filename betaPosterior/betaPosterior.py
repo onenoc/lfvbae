@@ -6,10 +6,11 @@ from scipy import misc
 import math
 from matplotlib import pyplot as plt
 from vbil import lower_bound as lower_boundVBIL
+from vbil import BBVI
 
 all_gradients = []
 n=100
-k=20
+k=30
 def iterate(params,num_samples,num_particles,i,m,v):
     S = 1
     b_1 = 0.9
@@ -28,7 +29,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
     params = params+a*m_h/(np.sqrt(v_h)+e)
-    return params,m,v
+    return params,m,v,LB
 
 def lower_bound(params,U1,sn):
     E = expectation(params,U1,sn)
@@ -100,37 +101,55 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.mean(E)
     return E
 
-def AVABC(params, num_samples,num_particles):
+def AVABC(params, num_samples,num_particles,K,convergence):
     m = np.array([0.,0])
     v = np.array([0.,0.])
-    for i in range(1000):
-        params,m,v = iterate(params,num_samples,num_particles,i,m,v)
-        if i%100==0:
+    iterating = 1
+    lower_bounds = []
+    i=0
+    while iterating==1:
+        params,m,v,LB = iterate(params,num_samples,num_particles,i,m,v)
+        LB=LB/10
+        if i%10==0:
             print params
-    return params
+        i+=1
+        lower_bounds.append(-LB)
+        if len(lower_bounds)>K+1:
+            lb2 = np.mean(np.array(lower_bounds[-K:]))
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            lower_bounds.append(-LB)
+            if abs(lb2-lb1)<convergence:
+                iterating = 0
+            if i%10==0:
+                print abs(lb2-lb1)
+    return params, lower_bounds, i
 
 if __name__=='__main__':
-    params = np.random.uniform(10,100,2)
-
+    params = np.random.uniform(0,100,2)
     lower_bounds = []
-    num_samples = 10
-    num_particles = 10
-    
-    params = AVABC(params,num_samples,num_particles)
+    num_samples = 50
+    num_particles = 50
+    K=50
+    convergence=1e-3
+    paramsAVABC,lower_boundsAVABC,i = AVABC(params,num_samples,num_particles,K,convergence)
+    paramsBBVI,lower_boundsBBVI,iBBVI = BBVI(params,num_samples,num_particles,K,convergence)
     print params
     print "true mean"
     print (k+1.)/(n+2.)
-    U = np.random.uniform(0,1,100000)
-    samples = generate_kumaraswamy(params,U)
-    print "estimated mean"
-    print np.mean(samples)
     a = k+1
     b = n-k+1
     x = np.linspace(0,1,100)
 #    fig, ax = plt.subplots(1, 1)
 #    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
 #    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-    plt.plot(x, beta.pdf(x, a,b),label='true posterior',color='blue')
-    plt.plot(x,kumaraswamy_pdf(x,params),label='VABC',color='green')
+    plt.plot(x, beta.pdf(x, a,b),label='true posterior',color='green')
+    plt.plot(x,kumaraswamy_pdf(x,paramsAVABC),label='AVABC',color='blue')
+    plt.plot(x,kumaraswamy_pdf(x,paramsBBVI),label='BBVI',color='red')
+    plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samples,num_particles))
     plt.legend()
+    plt.show()
+    plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samples,num_particles),color='red')
+    plt.plot(lower_boundsAVABC,label='AVABC  S=%i, sim=%i' % (num_samples,num_particles),color='blue')
+    plt.title('Beta-Bernoulli Lower Bound')
+    plt.legend(loc=4)
     plt.show()
