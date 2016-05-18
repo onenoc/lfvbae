@@ -40,19 +40,30 @@ def lower_bound(params,U1,U2,v):
 def expectation(params,U1,v):
     theta = generate_kumaraswamy(params,U1)
     e = np.exp(params[2])
+    #E = np.log(binomial_pmf(n,k,theta))
     E=0
     for i in range(len(theta)):
         E+=abc_log_likelihood(theta[i],i,v,e)
+    #E = np.log(likelihood(n,k,theta,0))
+    #return  np.mean(E)
     return E/len(theta)
 
-def abc_log_likelihood(theta,i,v,e):
+def likelihood(n,k,theta,i):
+    return binomial_pmf(n,k,theta)
+
+def abc_log_likelihood(n,k,theta,i,v,e):
     N = len(v)
-    x = simulator(theta,v)
-    log_kernels = log_abc_kernel(x,e)
+    x = simulator(n,theta,v)
+    log_kernels = log_abc_kernel(x,n,k,e)
+    #print log_kernels
+    #ll = misc.logsumexp(log_kernels)
+    #ll = np.log(np.sum(np.exp(log_kernels)))
+    #ll = np.log(1./N)+ll
+    #print ll
     ll = log_kernels 
     return ll
     
-def simulator(theta,v):
+def simulator(n,theta,v):
     a = n
     c = 0
     b = 1
@@ -61,10 +72,13 @@ def simulator(theta,v):
     mu = n*p
     sig2 = np.sqrt(n*p*(1-p))
     gaussian = mu+sig2*v
+    #if gaussian<0:
+    #    gaussian=0
+    #    print "a 0"
     gaussian = np.clip(gaussian,0,n)
     return gaussian
 
-def log_abc_kernel(x,e):
+def log_abc_kernel(x,n,k,e):
     '''
     @summary: kernel density, we use normal here
     @param y: observed data
@@ -75,6 +89,24 @@ def log_abc_kernel(x,e):
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2)) 
+
+def binomial_pmf(n,k,theta):
+    return nCr(n,k)*(theta**k)*((1-theta)**(n-k))
+
+def nCr(n, k):
+    """
+        A fast way to calculate binomial coefficients by Andrew Dalke (contrib).
+        """
+    if 0 <= k <= n:
+        ntok = 1
+        ktok = 1
+        for t in xrange(1, min(k, n - k) + 1):
+            ntok *= n
+            ktok *= t
+            n -= 1
+        return ntok // ktok
+    else:
+        return 0
 
 #Correct
 def generate_kumaraswamy(params,u):
@@ -97,16 +129,31 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.mean(E)
     return E
 
+#def run_ABC(start_params,n,k,num_samples,num_particles,num_iterations):
+
+def moving_average(a, n=3) :
+    ret = np.cumsum(a, dtype=float)
+    ret[n:] = ret[n:] - ret[:-n]
+    return ret[n - 1:] / n
+
 if __name__=='__main__':
+    n = 100
+    k = 20
     params = np.random.uniform(10,100,2)
     params = np.append(params,1.)
     m = np.array([0.,0.,0.])
     v = np.array([0.,0.,0.])
     lower_bounds = []
     for i in range(1000):
-        params,m,v = iterate(params,i,m,v)
+        params,m,v = iterate(params,n,k,i,m,v)
+        U1=np.random.uniform(0,1,30)
+        U2=np.random.uniform(0,1,50)
+        U3=np.random.uniform(0,1,100)
+        lower_bounds.append(lower_bound(params,n,k,U1,U2,U3))
         if i%100==0:
             print params
+           #print m,v
+
     print params
     plt.clf()
     print "true mean"
@@ -124,5 +171,39 @@ if __name__=='__main__':
     plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
     plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
     plt.legend()
+    #all_gradients = np.asarray(all_gradients)
+    #running_var = []
+    #for i in range(1,len(all_gradients)):
+    #    running_var.append(np.var(all_gradients[0:i])/i)
+    #plt.plot(running_var)
+    #print len(moving_average(lower_bounds,n=100))
+    #plt.hist(all_gradients)
+    #plt.plot(moving_average(lower_bounds,n=100))
+    #plt.plot(lower_bounds)
     plt.show()
 
+    #S = 1
+    #b_1 = 0.9
+    #b_2 = 0.999
+    #e = 10e-8
+    #grad_lower_bound = grad(lower_bound)
+    #all_gradients = []
+    #params = np.array([10.,10.,1.])
+    #for i in range(100):
+    #    U1=np.random.uniform(0,1,10)
+    #    U2=np.random.uniform(0,1,S)
+    #    sn=np.random.normal(0,1,1)
+    #    g = grad_lower_bound(params,n,k,U1,U2,sn)
+    #    all_gradients.append(np.sum(g**2))
+    #plt.hist(all_gradients)
+    #plt.show()
+        
+
+    '''
+    U = np.random.uniform(0,1,100000)
+    beta_samples = np.random.beta(k+1,n-k+1,100000)
+    kuma_samples = generate_kumaraswamy(params[0:2],U)
+    sns.distplot(beta_samples)
+    sns.distplot(kuma_samples)
+    plt.show()
+    '''
