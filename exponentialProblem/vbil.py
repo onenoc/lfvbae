@@ -25,7 +25,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     S = num_samples
-    a = 5*(S**(1./4))*1e-2
+    a = (S**(1./4))*1e-2
     #a = 5*(S)*1e-2
     all_gradients.append(g)
     params = params+a*m_h/(np.sqrt(v_h)+e)
@@ -180,6 +180,8 @@ def BBVI(params,num_samples,num_particles,K,convergence):
         lower_bounds.append(-LB)
         if params[1]<=0:
             params = np.random.uniform(0,1,2)
+            m = np.array([0.,0.])
+            v = np.array([0.,0.])
         if i%10==0:
             print params, LB
         if len(lower_bounds)>K+1:

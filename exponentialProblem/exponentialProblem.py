@@ -141,8 +141,10 @@ def avabc(params,num_samples,num_particles,K,convergence):
     v = np.array([0.,0.])
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v,num_samples,num_particles)
-        if params[1]<=0:
+        if params[1]<=0 or np.isnan(params).any():
             params = np.random.uniform(0,1,2)
+            m = np.array([0.,0.])
+            v = np.array([0.,0.])
         i+=1
         lower_bounds.append(-LB)
         if len(lower_bounds)>K+1:
@@ -152,6 +154,8 @@ def avabc(params,num_samples,num_particles,K,convergence):
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
+            if np.isnan(abs(lb2-lb1)):
+                lower_bounds=[]
         if i%10==0:
             print params, LB
     return params, lower_bounds,i
@@ -159,33 +163,33 @@ def avabc(params,num_samples,num_particles,K,convergence):
 if __name__=='__main__':
     paramsStart = np.random.uniform(0,1,2)
     iterating=1
-    Kavabc = 50
-    Kvbil = 50
-    num_samplesAVABC = 10
-    num_particlesAVABC = 10
-    num_samplesVBIL = 10
-    num_particlesVBIL = 10
+    Kavabc = 10
+    Kvbil = 10
+    same = 10
+    num_samplesAVABC = same
+    num_particlesAVABC = same
+    num_samplesVBIL = same
+    num_particlesVBIL = same
     #plot_gradients(params,num_samples,num_particles)
     convergenceAVABC = 1e-5
     convergenceVBIL = 1e-5
+    x = np.linspace(0.001,2,100)
     params, lower_bounds, i = avabc(paramsStart,num_samplesAVABC,num_particlesAVABC, Kavabc,convergenceAVABC)
     paramsBBVI, lower_boundsBBVI, iBBVI = BBVI(paramsStart,num_samplesVBIL,num_particlesVBIL,Kvbil,convergenceVBIL)
+    plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samplesVBIL, num_particlesVBIL),color='red')
+    plt.plot(lower_bounds,label='AVABC S=%i, sim=%i' % (num_samplesAVABC, num_particlesAVABC),color='blue')
+    plt.legend(loc=4)
+    plt.ylim((-10,0))
+    plt.title('Exponential Problem Lower Bound, $\lambda=1$')
+    plt.show()
     print 'AVABC convergence after %i iterations' % (i)
     print 'BBVI convergence after %i iterations' % (iBBVI)
-    x = np.linspace(0.001,2,100)
 
     plt.plot(x,gamma.pdf(x,M+1,scale=1./(Sy*M+1)),label='true posterior',color='green')
     plt.plot(x,lognormal_pdf(x,paramsBBVI),label='BBVI',color='red')
     plt.plot(x,lognormal_pdf(x,params),label='AVABC',color='blue')
     plt.legend()
     plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samplesAVABC,num_particlesAVABC))
-    plt.show()
-    plt.plot(lower_boundsBBVI,label='BBVI',color='red')
-    plt.plot(lower_bounds,label='AVABC',color='blue')
-    plt.legend(loc=4)
-    #plt.ylim((-1000/(num_samples*num_particles),0))
-    plt.ylim((-100,0))
-    plt.title('Lower Bound Convergence Plot, %i samples, %i particles' % (num_samplesAVABC,num_particlesAVABC))
     plt.show()
     #plt.plot(all_gradients)
     #plt.show()
