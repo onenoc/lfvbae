@@ -20,7 +20,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,U1,sn)
     samples = generate_kumaraswamy(params,U1)
-    #LB = lower_boundVBIL(params,samples,)
+    #    LB = lower_boundVBIL(params,samples,)
     all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -30,22 +30,22 @@ def iterate(params,num_samples,num_particles,i,m,v):
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
-def lower_bound(params,U1,v):
-    E = expectation(params,U1,v)
+def lower_bound(params,U1,sn):
+    E = expectation(params,U1,sn)
     KL = KL_via_sampling(params,1,1,U1)
     return E-KL
 
 #Correct (probably)
-def expectation(params,U1,v):
+def expectation(params,U1,sn):
     theta = generate_kumaraswamy(params,U1)
     E=0
     for i in range(len(theta)):
-        E+=abc_log_likelihood(theta[i],i,v)
+        E+=abc_log_likelihood(theta[i],i,sn)
     return E/len(theta)
 
-def abc_log_likelihood(theta,i,v):
-    N = len(v)
-    x = simulator(theta,v)
+def abc_log_likelihood(theta,i,sn):
+    N = len(sn)
+    x = simulator(theta,sn)
     log_kernels = log_abc_kernel(x)
     ll = log_kernels 
     return ll
@@ -95,19 +95,23 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.mean(E)
     return E
 
-#def AVABC(params, num_samples,num_particles):
-
-if __name__=='__main__':
-    params = np.random.uniform(10,100,2)
+def AVABC(params, num_samples,num_particles):
     m = np.array([0.,0])
     v = np.array([0.,0.])
-    lower_bounds = []
-    num_samples = 1
-    num_particles = 1
     for i in range(1000):
         params,m,v = iterate(params,num_samples,num_particles,i,m,v)
         if i%100==0:
             print params
+    return params
+
+if __name__=='__main__':
+    params = np.random.uniform(10,100,2)
+
+    lower_bounds = []
+    num_samples = 10
+    num_particles = 1
+    
+    params = AVABC(params,num_samples,num_particles)
     print params
     print "true mean"
     print (k+1.)/(n+2.)
