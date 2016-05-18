@@ -10,16 +10,15 @@ from vbil import lower_bound as lower_boundVBIL
 all_gradients = []
 n=100
 k=20
-def iterate(params,i,m,v):
+def iterate(params,num_samples,num_particles,i,m,v):
     S = 1
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    U1=np.random.uniform(0,1,1)
-    U2=np.random.uniform(0,1,S)
-    sn=np.random.normal(0,1,1)
+    U1=np.random.uniform(0,1,num_samples)
+    sn=np.random.normal(0,1,num_particles)
     grad_lower_bound = grad(lower_bound)
-    g = grad_lower_bound(params,U1,U2,sn)
+    g = grad_lower_bound(params,U1,sn)
     samples = generate_kumaraswamy(params,U1)
     #LB = lower_boundVBIL(params,samples,)
     all_gradients.append(g)
@@ -31,9 +30,9 @@ def iterate(params,i,m,v):
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
-def lower_bound(params,U1,U2,v):
+def lower_bound(params,U1,v):
     E = expectation(params,U1,v)
-    KL = KL_via_sampling(params,1,1,U2)
+    KL = KL_via_sampling(params,1,1,U1)
     return E-KL
 
 #Correct (probably)
@@ -103,8 +102,10 @@ if __name__=='__main__':
     m = np.array([0.,0])
     v = np.array([0.,0.])
     lower_bounds = []
+    num_samples = 1
+    num_particles = 1
     for i in range(1000):
-        params,m,v = iterate(params,i,m,v)
+        params,m,v = iterate(params,num_samples,num_particles,i,m,v)
         if i%100==0:
             print params
     print params
