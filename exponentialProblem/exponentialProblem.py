@@ -30,7 +30,7 @@ def iterate(params,i,m,v,num_samples,num_particles):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 5*(num_samples**(1./4))*1e-2
+    a = 5*(num_samples**(1./2))*1e-2
     #a = 5*(num_samples)*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v,LB
@@ -135,12 +135,14 @@ def plot_gradients(params,num_samples,num_particles):
 
 def avabc(params,num_samples,num_particles,K,convergence):
     lower_bounds = []
+    scaled_lower_bounds = []
     iterating = 1
     i=0
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v,num_samples,num_particles)
+        LB/=M
         if params[1]<=0 or np.isnan(params).any():
             params = np.random.uniform(0,1,2)
             m = np.array([0.,0.])
@@ -150,6 +152,7 @@ def avabc(params,num_samples,num_particles,K,convergence):
         if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:]))
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            scaled_lower_bounds.append(-LB)
             if abs(lb2-lb1)<convergence:
                 iterating = 0
             if i%10==0:
@@ -158,14 +161,13 @@ def avabc(params,num_samples,num_particles,K,convergence):
                 lower_bounds=[]
         if i%10==0:
             print params, LB
-    return params, lower_bounds,i
+    return params, scaled_lower_bounds,i
 
 if __name__=='__main__':
-    paramsStart = np.random.uniform(0,1,2)
-    iterating=1
+    paramsStart = np.random.uniform(2,3,2)
     Kavabc = 10
     Kvbil = 10
-    same = 10
+    same = 20
     num_samplesAVABC = same
     num_particlesAVABC = same
     num_samplesVBIL = same
@@ -179,8 +181,8 @@ if __name__=='__main__':
     plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samplesVBIL, num_particlesVBIL),color='red')
     plt.plot(lower_bounds,label='AVABC S=%i, sim=%i' % (num_samplesAVABC, num_particlesAVABC),color='blue')
     plt.legend(loc=4)
-    plt.ylim((-10,0))
-    plt.title('Exponential Problem Lower Bound, $\lambda=1$')
+    plt.ylim((-400,0))
+    plt.title('Exponential Problem Scaled Lower Bounds, $\lambda=1$')
     plt.show()
     print 'AVABC convergence after %i iterations' % (i)
     print 'BBVI convergence after %i iterations' % (iBBVI)
