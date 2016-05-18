@@ -39,16 +39,15 @@ def lower_bound(params,U1,U2,v):
 #Correct (probably)
 def expectation(params,U1,v):
     theta = generate_kumaraswamy(params,U1)
-    e = np.exp(params[2])
     E=0
     for i in range(len(theta)):
-        E+=abc_log_likelihood(theta[i],i,v,e)
+        E+=abc_log_likelihood(theta[i],i,v)
     return E/len(theta)
 
-def abc_log_likelihood(theta,i,v,e):
+def abc_log_likelihood(theta,i,v):
     N = len(v)
     x = simulator(theta,v)
-    log_kernels = log_abc_kernel(x,e)
+    log_kernels = log_abc_kernel(x)
     ll = log_kernels 
     return ll
     
@@ -64,7 +63,7 @@ def simulator(theta,v):
     gaussian = np.clip(gaussian,0,n)
     return gaussian
 
-def log_abc_kernel(x,e):
+def log_abc_kernel(x):
     '''
     @summary: kernel density, we use normal here
     @param y: observed data
@@ -97,18 +96,18 @@ def KL_via_sampling(params,a2,b2,U):
     E = np.mean(E)
     return E
 
+#def AVABC(params, num_samples,num_particles):
+
 if __name__=='__main__':
     params = np.random.uniform(10,100,2)
-    params = np.append(params,1.)
-    m = np.array([0.,0.,0.])
-    v = np.array([0.,0.,0.])
+    m = np.array([0.,0])
+    v = np.array([0.,0.])
     lower_bounds = []
     for i in range(1000):
         params,m,v = iterate(params,i,m,v)
         if i%100==0:
             print params
     print params
-    plt.clf()
     print "true mean"
     print (k+1.)/(n+2.)
     U = np.random.uniform(0,1,100000)
