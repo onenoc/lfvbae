@@ -20,7 +20,7 @@ def iterate(params,num_samples,num_particles,i,m,v):
     grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,U1,sn)
     samples = generate_kumaraswamy(params,U1)
-    #    LB = lower_boundVBIL(params,samples,)
+    LB = lower_boundVBIL(params,samples,num_particles)
     all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -47,7 +47,12 @@ def abc_log_likelihood(theta,i,sn):
     N = len(sn)
     x = simulator(theta,sn)
     log_kernels = log_abc_kernel(x)
-    ll = log_kernels 
+    if len(log_kernels)>1:
+        log_kernels_max = log_kernels.max()
+        ll = np.log(np.sum(np.exp(log_kernels-log_kernels_max)))+log_kernels_max
+        ll = np.log(1./N)+ll
+    else:
+        ll = log_kernels
     return ll
     
 def simulator(theta,v):
@@ -109,7 +114,7 @@ if __name__=='__main__':
 
     lower_bounds = []
     num_samples = 10
-    num_particles = 1
+    num_particles = 10
     
     params = AVABC(params,num_samples,num_particles)
     print params
