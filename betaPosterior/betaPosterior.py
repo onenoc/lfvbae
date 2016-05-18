@@ -5,7 +5,11 @@ from scipy.stats import beta
 from scipy import misc
 import math
 from matplotlib import pyplot as plt
-#import seaborn as sns
+from vbil import lower_bound as lower_boundVBIL
+
+all_gradients = []
+n=100
+k=20
 def iterate(params,n,k,i,m,v):
     S = 1
     b_1 = 0.9
@@ -16,13 +20,14 @@ def iterate(params,n,k,i,m,v):
     sn=np.random.normal(0,1,1)
     grad_lower_bound = grad(lower_bound)
     g = grad_lower_bound(params,n,k,U1,U2,sn)
+    samples = generate_kumaraswamy(params,U1)
+    #LB = lower_boundVBIL(params,samples,)
     all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
-    #params = params+a*g
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
@@ -133,39 +138,39 @@ def moving_average(a, n=3) :
 
 if __name__=='__main__':
     n = 100
-    k = 80
-    #params = np.random.uniform(10,100,2)
-    #params = np.append(params,1.)
-    #m = np.array([0.,0.,0.])
-    #v = np.array([0.,0.,0.])
-    #lower_bounds = []
-    #for i in range(1000):
-    #    params,m,v = iterate(params,n,k,i,m,v)
-    #    U1=np.random.uniform(0,1,30)
-    #    U2=np.random.uniform(0,1,50)
-    #    U3=np.random.uniform(0,1,100)
-    #    lower_bounds.append(lower_bound(params,n,k,U1,U2,U3))
-    #    if i%100==0:
-    #        print params
-            #print m,v
+    k = 20
+    params = np.random.uniform(10,100,2)
+    params = np.append(params,1.)
+    m = np.array([0.,0.,0.])
+    v = np.array([0.,0.,0.])
+    lower_bounds = []
+    for i in range(1000):
+        params,m,v = iterate(params,n,k,i,m,v)
+        U1=np.random.uniform(0,1,30)
+        U2=np.random.uniform(0,1,50)
+        U3=np.random.uniform(0,1,100)
+        lower_bounds.append(lower_bound(params,n,k,U1,U2,U3))
+        if i%100==0:
+            print params
+           #print m,v
 
-    #print params
-    #plt.clf()
-    #print "true mean"
-    #print (k+1.)/(n+2.)
-    #U = np.random.uniform(0,1,100000)
-    #samples = generate_kumaraswamy(params,U)
-    #print "estimated mean"
-    #print np.mean(samples)
-    #a = k+1
-    #b = n-k+1
-    #x = np.linspace(0,1,100)
-    #fig, ax = plt.subplots(1, 1)
-    #plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
-    #plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-    #plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    #plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
-    #plt.legend()
+    print params
+    plt.clf()
+    print "true mean"
+    print (k+1.)/(n+2.)
+    U = np.random.uniform(0,1,100000)
+    samples = generate_kumaraswamy(params,U)
+    print "estimated mean"
+    print np.mean(samples)
+    a = k+1
+    b = n-k+1
+    x = np.linspace(0,1,100)
+    fig, ax = plt.subplots(1, 1)
+    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
+    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
+    plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
+    plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
+    plt.legend()
     #all_gradients = np.asarray(all_gradients)
     #running_var = []
     #for i in range(1,len(all_gradients)):
@@ -175,23 +180,23 @@ if __name__=='__main__':
     #plt.hist(all_gradients)
     #plt.plot(moving_average(lower_bounds,n=100))
     #plt.plot(lower_bounds)
-    #plt.show()
-
-    S = 1
-    b_1 = 0.9
-    b_2 = 0.999
-    e = 10e-8
-    grad_lower_bound = grad(lower_bound)
-    all_gradients = []
-    params = np.array([10.,10.,1.])
-    for i in range(100):
-        U1=np.random.uniform(0,1,10)
-        U2=np.random.uniform(0,1,S)
-        sn=np.random.normal(0,1,1)
-        g = grad_lower_bound(params,n,k,U1,U2,sn)
-        all_gradients.append(np.sum(g**2))
-    plt.hist(all_gradients)
     plt.show()
+
+    #S = 1
+    #b_1 = 0.9
+    #b_2 = 0.999
+    #e = 10e-8
+    #grad_lower_bound = grad(lower_bound)
+    #all_gradients = []
+    #params = np.array([10.,10.,1.])
+    #for i in range(100):
+    #    U1=np.random.uniform(0,1,10)
+    #    U2=np.random.uniform(0,1,S)
+    #    sn=np.random.normal(0,1,1)
+    #    g = grad_lower_bound(params,n,k,U1,U2,sn)
+    #    all_gradients.append(np.sum(g**2))
+    #plt.hist(all_gradients)
+    #plt.show()
         
 
     '''
