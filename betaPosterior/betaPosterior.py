@@ -118,11 +118,10 @@ if __name__=='__main__':
     a = k+1
     b = n-k+1
     x = np.linspace(0,1,100)
-    fig, ax = plt.subplots(1, 1)
-    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
-    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
-    plt.plot(x, beta.pdf(x, a,b),'r-', lw=5, label='beta pdf',color='blue')
-    plt.plot(x,kumaraswamy_pdf(x,params),'r-', lw=5, label='kuma pdf',color='green')
+#    fig, ax = plt.subplots(1, 1)
+#    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
+#    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
+    plt.plot(x, beta.pdf(x, a,b),label='true posterior',color='blue')
+    plt.plot(x,kumaraswamy_pdf(x,params),label='VABC',color='green')
     plt.legend()
     plt.show()
-
