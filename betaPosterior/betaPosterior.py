@@ -10,12 +10,14 @@ from vbil import BBVI
 
 all_gradients = []
 n=100
-k=30
+k=70
+i_num = 1
 def iterate(params,num_samples,num_particles,i,m,v):
     S = 1
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
+    i_num = i
     U1=np.random.uniform(0,1,num_samples)
     sn=np.random.normal(0,1,num_particles)
     grad_lower_bound = grad(lower_bound)
@@ -75,7 +77,7 @@ def log_abc_kernel(x):
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e = 0.1
+    e = 0.001
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2)) 
@@ -127,8 +129,8 @@ def AVABC(params, num_samples,num_particles,K,convergence):
 if __name__=='__main__':
     params = np.random.uniform(0,100,2)
     lower_bounds = []
-    num_samples = 50
-    num_particles = 50
+    num_samples = 10
+    num_particles = 10
     K=50
     convergence=1e-3
     paramsAVABC,lower_boundsAVABC,i = AVABC(params,num_samples,num_particles,K,convergence)
@@ -139,6 +141,11 @@ if __name__=='__main__':
     a = k+1
     b = n-k+1
     x = np.linspace(0,1,100)
+    plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samples,num_particles),color='red')
+    plt.plot(lower_boundsAVABC,label='AVABC  S=%i, sim=%i' % (num_samples,num_particles),color='blue')
+    plt.title('Beta-Bernoulli Lower Bound')
+    plt.legend(loc=4)
+    plt.show()
 #    fig, ax = plt.subplots(1, 1)
 #    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
 #    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
@@ -146,10 +153,9 @@ if __name__=='__main__':
     plt.plot(x,kumaraswamy_pdf(x,paramsAVABC),label='AVABC',color='blue')
     plt.plot(x,kumaraswamy_pdf(x,paramsBBVI),label='BBVI',color='red')
     plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samples,num_particles))
-    plt.legend()
+    plt.legend(loc=2)
     plt.show()
-    plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samples,num_particles),color='red')
-    plt.plot(lower_boundsAVABC,label='AVABC  S=%i, sim=%i' % (num_samples,num_particles),color='blue')
-    plt.title('Beta-Bernoulli Lower Bound')
-    plt.legend(loc=4)
-    plt.show()
+    print 'AVABC params'
+    print paramsAVABC
+    params = [ 14.42637141  52.71715884]
+
