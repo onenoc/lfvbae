@@ -18,11 +18,13 @@ def generate_observations(trajectory, C, Sigma, startState,T,u):
     #initialize matrix of observations
     #observations = np.zeros(T)
     observations = []
-    #for t in range(T):
+    for t in range(T):
         #observations[t] = np.dot(C,trajectory[t])+Sigma*u[t]
-    #    observations.append(np.dot(C,trajectory[t])+Sigma*u[t])
+        observations.append(np.dot(C,trajectory[t])+Sigma*u[t])
+    observations = np.array(observations)
+    return observations
     #return np.asarray(observations,dtype='f')
-    return np.array([1.1, 2.1])
+#return np.array([1.1, 2.1])
 
 
 def generate_trajectory(A,Gamma,startState,T,u):
@@ -35,12 +37,13 @@ def generate_trajectory(A,Gamma,startState,T,u):
     #trajectory[0] = startState
     #for each time step in the chain
     trajectory = [startState]
-    #for t in range(1,T):
-    #    trajectory.append(np.dot(A,trajectory[t-1])+Gamma*u[t])
+    for t in range(1,T):
+        trajectory.append(np.dot(A,trajectory[t-1])+Gamma*u[t])
     #trajectory[t] = np.dot(A,trajectory[t-1])+Gamma*u[t]
     #trajectory = np.asarray(trajectory,dtype='f')
-    #return trajectory
-    return np.array([1.1, 2.1])
+    trajectory = np.array(trajectory)
+    return trajectory
+#return np.array([1.1, 2.1])
 
 def log_likelihood_estimator(A,Gamma,C,Sigma,all_observations, trajectories, nSamples):
     '''

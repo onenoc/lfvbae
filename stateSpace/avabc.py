@@ -51,7 +51,7 @@ def lower_bound(params,sim_variables,u1,u2,u3):
     '''
     E = expectation(params,sim_variables,u1,u2)
     mu = params[0]
-    sigma = params[1]
+    sigma = np.exp(params[1])
     KL = -1/2*(1+np.log(sigma**2)-mu**2-sigma**2)
     return E-KL
 
@@ -95,7 +95,6 @@ def log_abc_kernel(x,e):
     return -np.log(e)-np.log(2*np.pi)/2-np.sum((Sy-Sx)**2)/(2*(e**2))
 
 def summary_statistics(observations):
-    print observations[1:-1]
     s1 = np.sum(observations[1:-1])
     s2 = np.sum(observations[1:-2])**2
     s3 = np.sum(observations[1:]*observations[0:-1])
@@ -116,48 +115,51 @@ def variational_pdf(theta,params):
 
 def gaussian_pdf(theta, params):
     mu = params[0]
-    sigma = params[1]
+    sigma = np.exp(params[1])
     return np.exp(-(theta-mu)**2/(2*sigma**2))/(sigma*np.sqrt(2*np.pi))
 
 def generate_gaussian(params,u):
     mu=params[0]
-    sigma=params[1]
+    sigma=np.exp(params[1])
     return mu+sigma*u
 
-@memory.cache
 def data():
-    A = 1.2
-    Gamma = 0.5
+    A = 1.05
+    Gamma = 0.1
     C = 1
-    Sigma = 0.1
-    T = 100
+    Sigma = 0.005
+    T = 20
     startState = 1
-    u1 = np.random.normal(0,1,T)
-    u2 = np.random.normal(0,1,T)
+    np.random.seed(5)
+    u1 = np.random.randn(T)
+    np.random.seed(5)
+    u2 = np.random.randn(T)
     trajectory = generate_trajectory(A,Gamma, startState,T,u1)
     observations = generate_observations(trajectory,C,Sigma,startState,T,u2)
     return summary_statistics(observations)
 
 if __name__=='__main__':
-    A = 1.2
-    Gamma = 0.5
+    A = 1.05
+    Gamma = 0.1
     C = 1
-    Sigma = 0.1
-    T = 100
+    Sigma = 0.005
+    T = 20
     startState = 1
     u1 = np.random.normal(0,1,T)
     u2 = np.random.normal(0,1,T)
     prior_params = [0, 1]
     trajectory = generate_trajectory(A,Gamma, startState,T,u1)
     observations = generate_observations(trajectory,C,Sigma,startState,T,u2)
-    params = np.array([1., 1.])
+    print observations
+    params = np.array([-1., 0.1])
     sim_variables = [Gamma, C, Sigma]
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     i=0
-    for i in range(5):
+    for i in range(1000):
         u1 = np.random.normal(0,1)
         u2 = np.random.uniform(0,1,2*T)
         u3 = np.random.uniform(0,1)
-        params = iterate(params, sim_variables, u1, u2, u3, m, v)
-    print params
+        params,m,v = iterate(params, sim_variables, u1, u2, u3, m, v)
+        if i%100==0:
+            print params
