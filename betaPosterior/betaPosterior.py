@@ -7,6 +7,7 @@ import math
 from matplotlib import pyplot as plt
 from vbil import lower_bound as lower_boundVBIL
 from vbil import BBVI
+#import seaborn as sns
 
 all_gradients = []
 n=100
@@ -24,14 +25,23 @@ def iterate(params,num_samples,num_particles,i,m,v):
     g = grad_lower_bound(params,U1,sn)
     samples = generate_kumaraswamy(params,U1)
     LB = lower_boundVBIL(params,samples,num_particles)
-    all_gradients.append(g)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
+    gAdam = m_h/(np.sqrt(v_h)+e)
+    all_gradients.append(gAdam[0])
     params = params+a*m_h/(np.sqrt(v_h)+e)
+    #params = params+a*g
     return params,m,v,LB
+
+def gradient_lower_bound(params,num_samples,num_particles):
+    U1 = np.random.uniform(0,1,num_samples)
+    sn = np.random.normal(0,1,num_particles)
+    grad_lower_bound = grad(lower_bound)
+    g = grad_lower_bound(params,U1,sn)
+    return g
 
 def lower_bound(params,U1,sn):
     E = expectation(params,U1,sn)
@@ -42,14 +52,16 @@ def lower_bound(params,U1,sn):
 def expectation(params,U1,sn):
     theta = generate_kumaraswamy(params,U1)
     E=0
+    E_common=0
+    #num_particles = len(sn)/len(theta)
     for i in range(len(theta)):
         E+=abc_log_likelihood(theta[i],i,sn)
     return E/len(theta)
 
 def abc_log_likelihood(theta,i,sn):
     N = len(sn)
-    x = simulator(theta,sn)
-    log_kernels = log_abc_kernel(x)
+    x,std = simulator(theta,sn)
+    log_kernels = log_abc_kernel(x,std)
     if len(log_kernels)>1:
         log_kernels_max = log_kernels.max()
         ll = np.log(np.sum(np.exp(log_kernels-log_kernels_max)))+log_kernels_max
@@ -65,19 +77,20 @@ def simulator(theta,v):
     d = 1
     p=theta
     mu = n*p
-    sig2 = np.sqrt(n*p*(1-p))
-    gaussian = mu+sig2*v
+    sig = np.sqrt(n*p*(1-p))
+    gaussian = mu+sig*v
     gaussian = np.clip(gaussian,0,n)
-    return gaussian
+    return gaussian, sig
 
-def log_abc_kernel(x):
+def log_abc_kernel(x,std):
     '''
     @summary: kernel density, we use normal here
     @param y: observed data
     @param x: simulator output, often the mean of kernel density
     @param e: bandwith of density
     '''
-    e = 0.001
+    e = std/np.sqrt(n)
+    #e=0.1
     Sx = x
     Sy = k
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2)) 
@@ -109,43 +122,58 @@ def AVABC(params, num_samples,num_particles,K,convergence):
     iterating = 1
     lower_bounds = []
     i=0
+    i_true = 0
     while iterating==1:
         params,m,v,LB = iterate(params,num_samples,num_particles,i,m,v)
-        LB=LB/10
+        lower_bounds.append(-LB)
         if i%10==0:
             print params
         i+=1
-        lower_bounds.append(-LB)
+        i_true +=1
+        if params[0]<=0 or params[1]<=0:
+            i=0
+            params = np.random.uniform(10,100,2)
+            m = np.array([0.,0.])
+            v = np.array([0.,0.])
         if len(lower_bounds)>K+1:
-            lb2 = np.mean(np.array(lower_bounds[-K:]))
-            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            lb2 = np.mean(np.array(lower_bounds[-K:])/n)
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1])/n)
             lower_bounds.append(-LB)
             if abs(lb2-lb1)<convergence:
                 iterating = 0
             if i%10==0:
                 print abs(lb2-lb1)
-    return params, lower_bounds, i
+    return params, lower_bounds, i_true, all_gradients
 
 if __name__=='__main__':
     params = np.random.uniform(0,100,2)
     lower_bounds = []
-    num_samples = 10
-    num_particles = 10
-    K=50
-    convergence=1e-3
-    paramsAVABC,lower_boundsAVABC,i = AVABC(params,num_samples,num_particles,K,convergence)
-    paramsBBVI,lower_boundsBBVI,iBBVI = BBVI(params,num_samples,num_particles,K,convergence)
+    num_samples = 1
+    num_particles = 1
+    K=10
+    convergence=1e-03
+    paramsAVABC,lower_boundsAVABC,i,all_gradientsAVABC = AVABC(params,num_samples,num_particles,K+30,convergence)
+    paramsBBVI,lower_boundsBBVI,iBBVI,all_gradientsBBVI = BBVI(params,num_samples,num_particles,K+30,convergence)
     print params
     print "true mean"
     print (k+1.)/(n+2.)
     a = k+1
     b = n-k+1
+    print 'i AVABC'
+    print len(lower_boundsAVABC)
+    print 'i BBVI'
+    print len(lower_boundsBBVI)
+    print 'AVABC gradient std'
+    print np.std(np.array(all_gradientsAVABC))
+    print 'BBVI gradient std'
+    print np.std(np.array(all_gradientsBBVI))
     x = np.linspace(0,1,100)
     plt.plot(lower_boundsBBVI,label='BBVI S=%i, sim=%i' % (num_samples,num_particles),color='red')
     plt.plot(lower_boundsAVABC,label='AVABC  S=%i, sim=%i' % (num_samples,num_particles),color='blue')
     plt.title('Beta-Bernoulli Lower Bound')
     plt.legend(loc=4)
     plt.show()
+
 #    fig, ax = plt.subplots(1, 1)
 #    plt.plot(x,beta.pdf(x, a,b),'--',color='red',label='true')
 #    plt.plot(x,kumaraswamy_pdf(x,params),'-',color='blue',label='VI true likelihood')
@@ -155,7 +183,15 @@ if __name__=='__main__':
     plt.title('AVABC vs BBVI vs true posterior, %i samples, %i particles' % (num_samples,num_particles))
     plt.legend(loc=2)
     plt.show()
+    
+    plt.hist(all_gradientsBBVI,label='BBVI')
+    plt.hist(all_gradientsAVABC,label='AVABC')
+    #plt.distplot(all_gradientsBBVI)
+    #sns.distplot(all_gradientsAVABC)
+    plt.legend()
+    plt.show()
     print 'AVABC params'
     print paramsAVABC
-    params = [ 14.42637141  52.71715884]
+#params = [ 14.42637141  52.71715884]
+#params = [  16.42568426  151.18846825]
 

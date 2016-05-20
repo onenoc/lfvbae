@@ -9,7 +9,6 @@ import math
 
 all_gradients = []
 lower_bounds = []
-M=10
 n=100
 k=70
 Sy=k
@@ -25,6 +24,11 @@ def iterate(params,num_samples,num_particles,i,m,v):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 0.25
+#    print 'start g BBVI'
+#    print g
+#    print 'end g BBVI'
+    gAdam = m_h/(np.sqrt(v_h)+e)
+    all_gradients.append(gAdam[0])
     params = params+a*m_h/(np.sqrt(v_h)+e)
     #params = params+a*g
     return params,m,v, LB
@@ -89,24 +93,38 @@ def abc_log_likelihood(samples,num_particles):
     ll = np.zeros(S)
     for s in range(S):
         theta = samples[s]
-        x = simulator(theta,N)
-        log_kernels = log_abc_kernel(x)
+        x,std = simulator(theta,N)
+        log_kernels = log_abc_kernel(x,std)
         ll[s] = misc.logsumexp(log_kernels)
         ll[s] = np.log(1./N)+ll[s]
     return ll
 
-def simulator(theta,N):
-    return np.random.binomial(n,theta,size=N)
+#def simulator(theta,N):
+#    return np.random.binomial(n,theta,size=N)
 
-def log_abc_kernel(x):
+def simulator(theta,N):
+    a = n
+    c = 0
+    b = 1
+    d = 1
+    p=theta
+    mu = n*p
+    sig = np.sqrt(n*p*(1-p))
+    gaussian = mu+sig
+    gaussian = mu+sig*np.random.randn(N)
+    gaussian = np.clip(gaussian,0,n)
+    return gaussian,sig
+
+def log_abc_kernel(x,std):
     '''
         @summary: kernel density, we use normal here
         @param y: observed data
         @param x: simulator output, often the mean of kernel density
         @param e: bandwith of density
         '''
-    #e=std/np.sqrt(M)
-    e = 0.001
+    e=std/np.sqrt(n)
+    #e = 0.05
+    #e=0.1
     Sx = x
     return -np.log(e)-np.log(2*np.pi)/2-(Sy-Sx)**2/(2*(e**2))
 
@@ -145,10 +163,12 @@ def BBVI(params,num_samples,num_particles,K,convergence):
     lower_bounds = []
     iterating = 1
     i=0
+    i_true = 0
     while iterating==1:
         params,m,v,LB = iterate(params,num_samples,num_particles,i,m,v)
+        i_true += 1
         i+=1
-        lower_bounds.append(-LB/M)
+        lower_bounds.append(-LB)
         if params[0]<=0 or params[1]<=0:
             i=0
             params = np.random.uniform(10,100,2)
@@ -157,26 +177,26 @@ def BBVI(params,num_samples,num_particles,K,convergence):
         if i%100==0:
             print params
         if len(lower_bounds)>K+1:
-            lb2= np.mean(np.array(lower_bounds[-K:]))
-            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            lb2= np.mean(np.array(lower_bounds[-K:])/n)
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1])/n)
             if abs(lb2-lb1)<convergence:
                 iterating = 0
-    return params, lower_bounds, i
+    return params, lower_bounds, i_true,all_gradients
 
 
 if __name__=='__main__':
     print gradient_check()
-    params = np.random.uniform(10,100,2)
+    params = np.random.uniform(0,100,2)
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     lower_bounds = []
     num_samples = 10
     num_particles = 10
     K=10
-    convergence = 1e-4
+    convergence = 1e-5
     lower_bounds = []
     iterating = 1
-    params, lower_bounds, i = BBVI(params,num_samples,num_particles,K,convergence)
+    params, lower_bounds, i,all_gradients = BBVI(params,num_samples,num_particles,K,convergence)
     print '%i iterations' % (i)
     print params
     print "true mean"
