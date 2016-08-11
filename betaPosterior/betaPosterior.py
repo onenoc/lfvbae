@@ -1,7 +1,7 @@
 import autograd.numpy as np
 from autograd import grad
 from scipy import special
-from scipy.stats import beta
+from scipy.stats import beta, gaussian_kde
 from scipy import misc
 import math
 from matplotlib import pyplot as plt
@@ -10,6 +10,7 @@ from vbil import BBVI
 #import seaborn as sns
 
 all_gradients = []
+all_gradientsAdam = []
 n=100
 k=70
 i_num = 1
@@ -29,9 +30,10 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 0.25
+    a = 3
     gAdam = m_h/(np.sqrt(v_h)+e)
-    all_gradients.append(gAdam[0])
+    all_gradients.append(g[0])
+    all_gradientsAdam.append(gAdam[0])
     params = params+a*m_h/(np.sqrt(v_h)+e)
     #params = params+a*g
     return params,m,v,LB
@@ -138,7 +140,6 @@ def AVABC(params, num_samples,num_particles,K,convergence):
         if len(lower_bounds)>K+1:
             lb2 = np.mean(np.array(lower_bounds[-K:])/n)
             lb1 = np.mean(np.array(lower_bounds[-K-1:-1])/n)
-            lower_bounds.append(-LB)
             if abs(lb2-lb1)<convergence:
                 iterating = 0
             if i%10==0:
@@ -146,14 +147,14 @@ def AVABC(params, num_samples,num_particles,K,convergence):
     return params, lower_bounds, i_true, all_gradients
 
 if __name__=='__main__':
-    params = np.random.uniform(0,100,2)
+    params = np.array([1.,1.])#np.random.uniform(0,100,2)
     lower_bounds = []
-    num_samples = 1
-    num_particles = 1
+    num_samples = 10
+    num_particles = 10
     K=10
-    convergence=1e-03
-    paramsAVABC,lower_boundsAVABC,i,all_gradientsAVABC = AVABC(params,num_samples,num_particles,K+30,convergence)
-    paramsBBVI,lower_boundsBBVI,iBBVI,all_gradientsBBVI = BBVI(params,num_samples,num_particles,K+30,convergence)
+    convergence=1e-05
+    paramsAVABC,lower_boundsAVABC,i,all_gradientsAVABC = AVABC(params,num_samples,num_particles,K+40,convergence)
+    paramsBBVI,lower_boundsBBVI,iBBVI,all_gradientsBBVI = BBVI(params,num_samples,num_particles,K+40,convergence)
     print params
     print "true mean"
     print (k+1.)/(n+2.)
@@ -172,6 +173,7 @@ if __name__=='__main__':
     plt.plot(lower_boundsAVABC,label='AVABC  S=%i, sim=%i' % (num_samples,num_particles),color='blue')
     plt.title('Beta-Bernoulli Lower Bound')
     plt.legend(loc=4)
+    #plt.ylim((-25000,0))
     plt.show()
 
 #    fig, ax = plt.subplots(1, 1)
@@ -184,14 +186,17 @@ if __name__=='__main__':
     plt.legend(loc=2)
     plt.show()
     
-    plt.hist(all_gradientsBBVI,label='BBVI')
-    plt.hist(all_gradientsAVABC,label='AVABC')
-    #plt.distplot(all_gradientsBBVI)
-    #sns.distplot(all_gradientsAVABC)
+    density_AVABC = gaussian_kde(np.array(all_gradientsAVABC))
+    density_BBVI = gaussian_kde(np.array(all_gradientsBBVI))
+    
+    xs = np.linspace(-50,50,50)
+    plt.plot(xs,density_BBVI(xs),label='BBVI',color='red')
+    plt.plot(xs,density_AVABC(xs),label='AVABC',color='blue')
+    plt.title('Gradient Distribution for one Algorithm Run, Bernoulli Problem')
     plt.legend()
     plt.show()
-    print 'AVABC params'
-    print paramsAVABC
+#    print 'AVABC params'
+#    print paramsAVABC
 #params = [ 14.42637141  52.71715884]
 #params = [  16.42568426  151.18846825]
 

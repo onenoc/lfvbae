@@ -14,7 +14,11 @@ memory = Memory(cachedir='joblib_cache',verbose=0)
     data()
     inputs to iterate()
 '''
-
+T=50
+Gamma = 0.1
+C = 1
+Sigma = 0.005
+startState = 1e-3
 def iterate(params, sim_variables, u1, u2, u3, m, v):
     '''
     @param params: variational distribution parameters
@@ -34,7 +38,7 @@ def iterate(params, sim_variables, u1, u2, u3, m, v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 0.25
+    a = 0.5
     #params = params+a*g
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
@@ -51,8 +55,9 @@ def lower_bound(params,sim_variables,u1,u2,u3):
     '''
     E = expectation(params,sim_variables,u1,u2)
     mu = params[0]
-    sigma = np.exp(params[1])
-    KL = -1/2*(1+np.log(sigma**2)-mu**2-sigma**2)
+    sigParam = np.exp(params[1])
+    #KL = -1/2*(1+np.log(sigma**2)-mu**2-sigParam**2)
+    KL=0
     return E-KL
 
 def expectation(params,sim_variables, u1, u2):
@@ -75,15 +80,12 @@ def abc_log_likelihood(theta,sim_variables,u2):
     '''
     N = len(v)
     x = simulator(theta,sim_variables,u2)
-    e = 0.5
+    e = 0.01
     log_kernels = log_abc_kernel(x,e)
     ll = log_kernels
     return ll
 
 def simulator(theta, sim_variables,u2):
-    Gamma = sim_variables[0]
-    C = sim_variables[1]
-    Sigma = sim_variables[2]
     T = len(u2)/2
     trajectory = generate_trajectory(theta,Gamma, startState,T,u2[:len(u2)/2])
     obs = generate_observations(trajectory,C,Sigma,startState,T,u2[len(u2)/2:])
@@ -115,8 +117,8 @@ def variational_pdf(theta,params):
 
 def gaussian_pdf(theta, params):
     mu = params[0]
-    sigma = np.exp(params[1])
-    return np.exp(-(theta-mu)**2/(2*sigma**2))/(sigma*np.sqrt(2*np.pi))
+    sigParam = np.exp(params[1])
+    return np.exp(-(theta-mu)**2/(2*sigParam**2))/(sigParam*np.sqrt(2*np.pi))
 
 def generate_gaussian(params,u):
     mu=params[0]
@@ -124,12 +126,7 @@ def generate_gaussian(params,u):
     return mu+sigma*u
 
 def data():
-    A = 1.05
-    Gamma = 0.1
-    C = 1
-    Sigma = 0.005
-    T = 20
-    startState = 1
+    A = 1
     np.random.seed(5)
     u1 = np.random.randn(T)
     np.random.seed(5)
@@ -139,26 +136,16 @@ def data():
     return summary_statistics(observations)
 
 if __name__=='__main__':
-    A = 1.05
-    Gamma = 0.1
-    C = 1
-    Sigma = 0.005
-    T = 20
-    startState = 1
-    u1 = np.random.normal(0,1,T)
-    u2 = np.random.normal(0,1,T)
     prior_params = [0, 1]
-    trajectory = generate_trajectory(A,Gamma, startState,T,u1)
-    observations = generate_observations(trajectory,C,Sigma,startState,T,u2)
-    print observations
-    params = np.array([-1., 0.1])
+    params = np.array([1., 0.1])
     sim_variables = [Gamma, C, Sigma]
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     i=0
+    print data()
     for i in range(1000):
         u1 = np.random.normal(0,1)
-        u2 = np.random.uniform(0,1,2*T)
+        u2 = np.random.normal(0,1,2*T)
         u3 = np.random.uniform(0,1)
         params,m,v = iterate(params, sim_variables, u1, u2, u3, m, v)
         if i%100==0:

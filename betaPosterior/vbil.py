@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 import math
 
 all_gradients = []
+all_gradientsAdam = []
 lower_bounds = []
 n=100
 k=70
@@ -23,12 +24,13 @@ def iterate(params,num_samples,num_particles,i,m,v):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 0.25
+    a = 3
 #    print 'start g BBVI'
 #    print g
 #    print 'end g BBVI'
     gAdam = m_h/(np.sqrt(v_h)+e)
-    all_gradients.append(gAdam[0])
+    all_gradients.append(g[0])
+    all_gradientsAdam.append(gAdam[0])
     params = params+a*m_h/(np.sqrt(v_h)+e)
     #params = params+a*g
     return params,m,v, LB

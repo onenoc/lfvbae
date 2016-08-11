@@ -101,7 +101,7 @@ def unit_test():
 
 
 if __name__=='__main__':
-    A = 1.2
+    A = 1
     Gamma = 0.1
     C = 1
     Sigma = 0.1

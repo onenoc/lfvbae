@@ -31,8 +31,10 @@ def iterate(params,i,m,v,num_samples,num_particles):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = 5*(num_samples**(1./2))*1e-2
+    #a=0.001
     #a = 5*(num_samples)*1e-2
     params = params+a*m_h/(np.sqrt(v_h)+e)
+    #params = params+a*g
     return params,m,v,LB
 
 def gradient_lower_bound(params,num_samples,num_simulations):
@@ -142,7 +144,7 @@ def avabc(params,num_samples,num_particles,K,convergence):
     v = np.array([0.,0.])
     while iterating==1:
         params,m,v,LB = iterate(params,i,m,v,num_samples,num_particles)
-        LB/=M
+        #LB/=M
         if params[1]<=0 or np.isnan(params).any():
             params = np.random.uniform(0,1,2)
             m = np.array([0.,0.])
@@ -165,9 +167,9 @@ def avabc(params,num_samples,num_particles,K,convergence):
 
 if __name__=='__main__':
     paramsStart = np.random.uniform(2,3,2)
-    Kavabc = 10
-    Kvbil = 10
-    same = 20
+    Kavabc = 50
+    Kvbil = 50
+    same = 10
     num_samplesAVABC = same
     num_particlesAVABC = same
     num_samplesVBIL = same

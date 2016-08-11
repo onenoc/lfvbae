@@ -27,8 +27,10 @@ def iterate(params,num_samples,num_particles,i,m,v):
     S = num_samples
     a = (S**(1./2))*1e-2
     #a = 5*(S)*1e-2
-    all_gradients.append(g)
+    #a=0.001
+    #all_gradients.append(g)
     params = params+a*m_h/(np.sqrt(v_h)+e)
+    #params = params+a*g
     return params,m,v,LB
 
 def lower_bound(params,samples,num_particles):
@@ -178,7 +180,7 @@ def BBVI(params,num_samples,num_particles,K,convergence):
     while iterating==1:
         params,m,v,LB = iterate(params,num_samples,num_particles,i,m,v)
         #the scaling performs very poorly
-        LB/=M
+        #LB/=M
         i+=1
         lower_bounds.append(-LB)
         if params[1]<=0:
