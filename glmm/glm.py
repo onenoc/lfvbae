@@ -11,7 +11,7 @@ def iterate(params,y,X,i,m,v,num_samples):
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = 5*(num_samples**(1./2))*1e-2
+    a = (num_samples**(1./2))*5e-1
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
@@ -36,9 +36,7 @@ def expectation(params,y,X,eps):
     beta = params[0]+np.exp(params[1])*eps
     E = 0
     for j in range(len(beta)):
-        for i in range(len(y)):
-            E += np.log(likelihood_i(beta[j],y[i],X[i]))
-    #    E+= np.log(likelihood(beta[j],y,X))
+        E+= log_likelihood(beta[j],y,X)
     return E/len(beta)
 
 def KL_via_sampling(params,eps):
@@ -52,14 +50,14 @@ def KL_via_sampling(params,eps):
 
 def normal_pdf(theta,params):
     mu = params[0]
-    sigma = params[1]
+    sigma = np.exp(params[1])
     return np.exp(-(theta-mu)**2/(2*sigma**2))/np.sqrt(2*sigma**2*np.pi)
 
-def likelihood(beta, y,X):
-    likelihood = 1
+def log_likelihood(beta, y,X):
+    log_likelihood = 0
     for i in range(len(y)):
-        likelihood *= likelihood_i(beta,y[i],X[i])
-    return likelihood
+        log_likelihood += np.log(likelihood_i(beta,y[i],X[i]))
+    return log_likelihood
 
 def likelihood_i(beta,yi,xi):
     pi = get_pi(beta,xi)
@@ -76,11 +74,13 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    params = np.array([10.,2.])
-    X,y = generate_data(5,100)
+    params = np.array([0.,0.])
+    X,y = generate_data(1,5000)
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.array([0.,0.])
     v = np.array([0.,0.])
     for i in range(100):
-        params,m,v =iterate(params,y,X,i,m,v,20)
+        params,m,v =iterate(params,y,X,i,m,v,1)
         print params[0], np.exp(params[1])
+#    eps = np.random.rand(50)
+#    print lower_bound(params,y,X,eps)
