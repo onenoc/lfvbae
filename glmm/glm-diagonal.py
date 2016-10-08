@@ -48,7 +48,7 @@ def expectation(params,y,X,eps,N,u):
     n = X.shape[0]
     for j in range(np.shape(eps)[0]):
         beta = mu+Sigma*eps[j,:]
-        E+=log_likelihood(beta,y,X,u[j*(n*N):(j+1)*(n*N)])
+        E+=log_likelihood(beta,y,X)#,u[j*(n*N):(j+1)*(n*N)])
     return E/len(beta)
 
 def KL_two_gaussians(params):
@@ -58,24 +58,24 @@ def KL_two_gaussians(params):
     sigmaPrior = np.identity(d)
     return 1/2*(np.log(np.linalg.det(Sigma)/np.linalg.det(sigmaPrior))-d+np.trace(np.dot(np.linalg.inv(Sigma),sigmaPrior))+np.dot(np.transpose(mu-muPrior),np.dot(np.linalg.inv(Sigma),mu-muPrior)))
 
-def log_likelihood(beta, y,X,u):
+def log_likelihood(beta, y,X):
     ll = 0
     #generate N*n particles
-    alpha = np.zeros(len(u))
+    #alpha = np.zeros(len(u))
     #iterate over participants
     for i in range(y.shape[0]):
         #iterate over particles
-        #ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])
-        for j in range(len(alpha)):
-            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[j])
+        ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])
+#        for j in range(len(alpha)):
+#            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])#,alpha[j])
     return ll
 
-def log_likelihood_particle(beta, y,X,alpha_i):
+def log_likelihood_particle(beta, y,X):
     #this is wrong.  Is it???
     log_likelihood = 0
     for i in range(len(y)):
         #iterate over timesteps
-        log_likelihood += np.log(likelihood_i(beta,y[i],X[i],alpha_i))
+        log_likelihood += np.log(likelihood_i(beta,y[i],X[i],0))
     return log_likelihood
 
 def likelihood_i(beta,yi,xi,alpha_i):
