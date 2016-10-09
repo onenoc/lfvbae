@@ -1,14 +1,14 @@
 import autograd.numpy as np
 from scipy import stats
 from autograd import grad
-#pass in one uniform AND one Gaussian for each alpha needed
+#NEED KL FOR LOGNORMAL
 #each participant gets a single alpha term per particle (constant across time periods)
 #first, don't use alpha but have a placeholder for it
 def iterate(params,y,X,i,m,v,num_samples):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    N = 1
+    N = 5
     g = gradient_lower_bound(params,y,X,num_samples,N)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -31,45 +31,64 @@ def generate_data(beta,tau,n,num_times):
 def gradient_lower_bound(params,y,X,num_samples,N):
     eps = np.random.normal(0,1,(num_samples,np.shape(X)[-1]+1))
     n = np.shape(y)[0]
-    u = np.random.uniform(0,1,num_samples*N*n)
+    u = np.random.normal(0,1,num_samples*N*n)
+    z = np.random.normal(0,1,num_samples*N*n)
     gradient_lower_bound = grad(lower_bound)
-    g = gradient_lower_bound(params,y,X,eps,N,u)
+    g = gradient_lower_bound(params,y,X,eps,N,z,u)
     return g
 
-def lower_bound(params,y,X,eps,N,u):
-    E = expectation(params,y,X,eps,N,u)
+def lower_bound(params,y,X,eps,N,z,u):
+    E = expectation(params,y,X,eps,N,z,u)
     KL = KL_two_gaussians(params)
     return E-KL
 
-def expectation(params,y,X,eps,N,u):
-    mu = params[0:(len(params)-1)/2]
-    Sigma = np.exp(params[(len(params)-1)/2:-1])
-    tau = params[-1]
+def expectation(params,y,X,eps,N,z,u):
+    mu = params[0:(len(params)-2)/2]
+    Sigma = np.exp(params[(len(params)-2)/2:-2])
+    tauParams = params[-2:]
     E = 0
     n = X.shape[0]
     for j in range(np.shape(eps)[0]):
         beta = mu+Sigma*eps[j,:]
-        E+=log_likelihood(beta,y,X,u[j*(n*N):(j+1)*(n*N)],tau,N)
+        E+=log_likelihood(beta,y,X,z[j*(n*N):(j+1)*(n*N)],u[j*(n*N):(j+1)*(n*N)],tauParams,N)
     return E/len(beta)
 
 def KL_two_gaussians(params):
-    mu = params[0:(len(params)-1)/2]
-    Sigma = np.diag(np.exp(params[(len(params)-1)/2:-1]))
-    muPrior = np.zeros((len(params)-1)/2)
-    sigmaPrior = np.identity((len(params)-1)/2)
+    mu = params[0:(len(params)-2)/2]
+    Sigma = np.diag(np.exp(params[(len(params)-2)/2:-2]))
+    muPrior = np.zeros((len(params)-2)/2)
+    sigmaPrior = np.identity((len(params)-2)/2)
     return 1/2*(np.log(np.linalg.det(Sigma)/np.linalg.det(sigmaPrior))-d+np.trace(np.dot(np.linalg.inv(Sigma),sigmaPrior))+np.dot(np.transpose(mu-muPrior),np.dot(np.linalg.inv(Sigma),mu-muPrior)))
 
-def log_likelihood(beta, y,X,u,tau,N):
+def log_likelihood(beta, y,X,z,u,tauParams,N):
     ll = 0
     #generate N*n particles
-    alpha = np.zeros(len(u))
+    inv_lognormal = 1./generate_lognormal(tauParams,u)
+    alpha = np.sqrt(inv_lognormal)*z
     #iterate over participants
+    count = 0
     for i in range(y.shape[0]):
         #iterate over particles
         #ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])
         for j in range(N):
-            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[(i+1)*j])
+            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[count])
+            count += 1
     return ll
+
+#Correct
+def generate_lognormal(params,u):
+    mu = params[0]
+    sigma = np.exp(params[1])
+    Y = mu+sigma*u
+    X = np.exp(Y)
+    return X
+
+#Correct
+def lognormal_pdf(theta,params):
+    mu=params[0]
+    sigma=params[1]
+    x=theta
+    return np.exp(-(np.log(x)-mu)**2/(2*(sigma**2)))/(x*sigma*np.sqrt(2*np.pi))
 
 def log_likelihood_particle(beta, y,X,alpha_i):
     log_likelihood = 0
@@ -94,17 +113,18 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    d = 3
-    params = np.random.normal(0,1,2*d+1)
+    d = 2
+    params = np.random.normal(0,1,2*d+2)
     #generate_data(beta,tau,n,num_times)
-    X,y = generate_data(np.array([0.5,10]),1,500,4)#537
+    X,y = generate_data(np.array([0.5,5]),1.5,500,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
-    m = np.zeros(2*d+1)
-    v = np.zeros(2*d+1)
+    m = np.zeros(2*d+2)
+    v = np.zeros(2*d+2)
     for i in range(150):
         params,m,v =iterate(params,y,X,i,m,v,1)
-        mu = params[0:len(params)/2]
+        mu = params[0:(len(params)-2)/2]
         print mu
+#print 1/np.exp(params[-2])
 #    eps = np.random.rand(50)
 #    print lower_bound(params,y,X,eps)
 
