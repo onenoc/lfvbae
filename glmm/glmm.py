@@ -1,7 +1,7 @@
 import autograd.numpy as np
 from scipy import stats
 from autograd import grad
-#need to sample N alphas per participant
+#pass in one uniform AND one Gaussian for each alpha needed
 #each participant gets a single alpha term per particle (constant across time periods)
 #first, don't use alpha but have a placeholder for it
 def iterate(params,y,X,i,m,v,num_samples):
@@ -24,7 +24,7 @@ def generate_data(beta,tau,n,num_times):
     alpha = np.random.normal(0,tau,n)
     alpha = np.reshape(np.tile(alpha,num_times),(num_times,n))
     alpha = np.transpose(alpha)
-    P = logistic(beta[0]+np.dot(X,beta[1:]))#+alpha)
+    P = logistic(beta[0]+np.dot(X,beta[1:])+alpha)
     y = np.random.binomial(1,P)
     return X,y
 
@@ -42,23 +42,24 @@ def lower_bound(params,y,X,eps,N,u):
     return E-KL
 
 def expectation(params,y,X,eps,N,u):
-    mu = params[0:len(params)/2]
-    Sigma = np.exp(params[len(params)/2:])
+    mu = params[0:(len(params)-1)/2]
+    Sigma = np.exp(params[(len(params)-1)/2:-1])
+    tau = params[-1]
     E = 0
     n = X.shape[0]
     for j in range(np.shape(eps)[0]):
         beta = mu+Sigma*eps[j,:]
-        E+=log_likelihood(beta,y,X,u[j*(n*N):(j+1)*(n*N)])
+        E+=log_likelihood(beta,y,X,u[j*(n*N):(j+1)*(n*N)],tau,N)
     return E/len(beta)
 
 def KL_two_gaussians(params):
-    mu = params[0:len(params)/2]
-    Sigma = np.diag(np.exp(params[len(params)/2:]))
-    muPrior = np.zeros(d)
-    sigmaPrior = np.identity(d)
+    mu = params[0:(len(params)-1)/2]
+    Sigma = np.diag(np.exp(params[(len(params)-1)/2:-1]))
+    muPrior = np.zeros((len(params)-1)/2)
+    sigmaPrior = np.identity((len(params)-1)/2)
     return 1/2*(np.log(np.linalg.det(Sigma)/np.linalg.det(sigmaPrior))-d+np.trace(np.dot(np.linalg.inv(Sigma),sigmaPrior))+np.dot(np.transpose(mu-muPrior),np.dot(np.linalg.inv(Sigma),mu-muPrior)))
 
-def log_likelihood(beta, y,X,u):
+def log_likelihood(beta, y,X,u,tau,N):
     ll = 0
     #generate N*n particles
     alpha = np.zeros(len(u))
@@ -66,12 +67,11 @@ def log_likelihood(beta, y,X,u):
     for i in range(y.shape[0]):
         #iterate over particles
         #ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])
-        for j in range(len(alpha)):
-            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[j])
+        for j in range(N):
+            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[(i+1)*j])
     return ll
 
 def log_likelihood_particle(beta, y,X,alpha_i):
-    #this is wrong.  Is it???
     log_likelihood = 0
     for i in range(len(y)):
         #iterate over timesteps
@@ -84,7 +84,7 @@ def likelihood_i(beta,yi,xi,alpha_i):
 
 def get_pi(beta,xi,alpha_i):
     xi = np.insert(xi, 0, 1)
-    return logistic(np.dot(beta,xi))#+alpha_i)
+    return logistic(np.dot(beta,xi)+alpha_i)
 
 def bernoulli(pi, yi):
     return (pi**yi)*((1-pi)**(1-yi))
@@ -94,13 +94,13 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    d = 2
-    params = np.random.normal(0,1,2*d)
+    d = 3
+    params = np.random.normal(0,1,2*d+1)
     #generate_data(beta,tau,n,num_times)
     X,y = generate_data(np.array([0.5,10]),1,500,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
-    m = np.zeros(2*d)
-    v = np.zeros(2*d)
+    m = np.zeros(2*d+1)
+    v = np.zeros(2*d+1)
     for i in range(150):
         params,m,v =iterate(params,y,X,i,m,v,1)
         mu = params[0:len(params)/2]
