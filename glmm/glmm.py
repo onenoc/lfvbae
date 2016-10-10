@@ -8,13 +8,13 @@ def iterate(params,y,X,i,m,v,num_samples):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    N = 5
+    N = 20
     g = gradient_lower_bound(params,y,X,num_samples,N)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
-    a = (num_samples**(1./2))*10e-1
+    a = (num_samples**(1./2))
     params = params+a*m_h/(np.sqrt(v_h)+e)
     return params,m,v
 
@@ -65,6 +65,7 @@ def log_likelihood(beta, y,X,z,u,tauParams,N):
     #generate N*n particles
     inv_lognormal = 1./generate_lognormal(tauParams,u)
     alpha = np.sqrt(inv_lognormal)*z
+    print np.mean(np.sqrt(inv_lognormal))
     #iterate over participants
     count = 0
     for i in range(y.shape[0]):
@@ -92,18 +93,22 @@ def lognormal_pdf(theta,params):
 
 def log_likelihood_particle(beta, y,X,alpha_i):
     log_likelihood = 0
-    for i in range(len(y)):
-        #iterate over timesteps
-        log_likelihood += np.log(likelihood_i(beta,y[i],X[i],alpha_i))
+    pi = get_pi(beta,X,alpha_i)
+    likelihood = bernoulli(pi,y)
+    log_likelihood = np.sum(np.log(likelihood))
+#    for i in range(len(y)):
+#        #iterate over timesteps
+#        log_likelihood += np.log(likelihood_i(beta,y[i],X[i],alpha_i))
     return log_likelihood
 
 def likelihood_i(beta,yi,xi,alpha_i):
     pi = get_pi(beta,xi,alpha_i)
     return bernoulli(pi,yi)
 
-def get_pi(beta,xi,alpha_i):
-    xi = np.insert(xi, 0, 1)
-    return logistic(np.dot(beta,xi)+alpha_i)
+def get_pi(beta,X,alpha_i):
+#    xi = np.insert(xi, 0, 1)
+#    beta[0]+np.dot(X,beta[1:])
+    return logistic(beta[0]+np.dot(X,beta[1:])+0*alpha_i)
 
 def bernoulli(pi, yi):
     return (pi**yi)*((1-pi)**(1-yi))
@@ -113,10 +118,11 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    d = 2
+    beta = np.array([-2,10])
+    d = len(beta)
     params = np.random.normal(0,1,2*d+2)
     #generate_data(beta,tau,n,num_times)
-    X,y = generate_data(np.array([0.5,5]),1.5,500,4)#537
+    X,y = generate_data(beta,1.5,500,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
