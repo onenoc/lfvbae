@@ -8,7 +8,7 @@ def iterate(params,y,X,i,m,v,num_samples):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    N = 20
+    N = 2
     g = gradient_lower_bound(params,y,X,num_samples,N)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -39,8 +39,9 @@ def gradient_lower_bound(params,y,X,num_samples,N):
 
 def lower_bound(params,y,X,eps,N,z,u):
     E = expectation(params,y,X,eps,N,z,u)
-    KL = KL_two_gaussians(params)
-    return E-KL
+    tauParams = params[-2:]
+    KL = KL_two_gaussians(params)#+KL_two_inv_lognormal(tauParams,u[:N])
+    return E#-KL
 
 def expectation(params,y,X,eps,N,z,u):
     mu = params[0:(len(params)-2)/2]
@@ -55,10 +56,18 @@ def expectation(params,y,X,eps,N,z,u):
 
 def KL_two_gaussians(params):
     mu = params[0:(len(params)-2)/2]
-    Sigma = np.diag(np.exp(params[(len(params)-2)/2:-2]))
-    muPrior = np.zeros((len(params)-2)/2)
-    sigmaPrior = np.identity((len(params)-2)/2)
-    return 1/2*(np.log(np.linalg.det(Sigma)/np.linalg.det(sigmaPrior))-d+np.trace(np.dot(np.linalg.inv(Sigma),sigmaPrior))+np.dot(np.transpose(mu-muPrior),np.dot(np.linalg.inv(Sigma),mu-muPrior)))
+    Sigma = np.exp(params[(len(params)-2)/2:-2])
+    return -1/2*np.sum(1+np.log(Sigma**2)-mu**2-Sigma**2)
+
+def KL_two_inv_lognormal(params,u):
+    muPrior = np.log(1)
+    sigmaPrior = 0.1
+    q_samples = 1/generate_lognormal(params,u)
+#    print params
+#    print muPrior, sigmaPrior
+#    print 1/lognormal_pdf(q_samples,np.array([muPrior,sigmaPrior]))
+    return np.sum(np.log(lognormal_pdf(q_samples,np.array([muPrior,sigmaPrior]))/lognormal_pdf(q_samples,params)))/len(u)
+
 
 def log_likelihood(beta, y,X,z,u,tauParams,N):
     ll = 0
@@ -69,8 +78,6 @@ def log_likelihood(beta, y,X,z,u,tauParams,N):
     #iterate over participants
     count = 0
     for i in range(y.shape[0]):
-        #iterate over particles
-        #ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:])
         for j in range(N):
             ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[count])
             count += 1
@@ -87,7 +94,7 @@ def generate_lognormal(params,u):
 #Correct
 def lognormal_pdf(theta,params):
     mu=params[0]
-    sigma=params[1]
+    sigma=np.exp(params[1])
     x=theta
     return np.exp(-(np.log(x)-mu)**2/(2*(sigma**2)))/(x*sigma*np.sqrt(2*np.pi))
 
@@ -96,9 +103,6 @@ def log_likelihood_particle(beta, y,X,alpha_i):
     pi = get_pi(beta,X,alpha_i)
     likelihood = bernoulli(pi,y)
     log_likelihood = np.sum(np.log(likelihood))
-#    for i in range(len(y)):
-#        #iterate over timesteps
-#        log_likelihood += np.log(likelihood_i(beta,y[i],X[i],alpha_i))
     return log_likelihood
 
 def likelihood_i(beta,yi,xi,alpha_i):
@@ -106,9 +110,7 @@ def likelihood_i(beta,yi,xi,alpha_i):
     return bernoulli(pi,yi)
 
 def get_pi(beta,X,alpha_i):
-#    xi = np.insert(xi, 0, 1)
-#    beta[0]+np.dot(X,beta[1:])
-    return logistic(beta[0]+np.dot(X,beta[1:])+0*alpha_i)
+    return logistic(beta[0]+np.dot(X,beta[1:])+alpha_i)
 
 def bernoulli(pi, yi):
     return (pi**yi)*((1-pi)**(1-yi))
@@ -121,8 +123,10 @@ if __name__=='__main__':
     beta = np.array([-2,10])
     d = len(beta)
     params = np.random.normal(0,1,2*d+2)
+#    params[-2] = 0
+#    params[-1] = 0.1
     #generate_data(beta,tau,n,num_times)
-    X,y = generate_data(beta,1.5,500,4)#537
+    X,y = generate_data(beta,1.5,50,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
@@ -130,6 +134,12 @@ if __name__=='__main__':
         params,m,v =iterate(params,y,X,i,m,v,1)
         mu = params[0:(len(params)-2)/2]
         print mu
+        Sigma = params[(len(params)-2)/2:-2]
+        print np.exp(Sigma)
+        if np.isnan(params).any():
+            params = np.random.normal(0,1,2*d+2)
+            m = np.zeros(2*d+2)
+            v = np.zeros(2*d+2)
 #print 1/np.exp(params[-2])
 #    eps = np.random.rand(50)
 #    print lower_bound(params,y,X,eps)
