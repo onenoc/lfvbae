@@ -8,7 +8,7 @@ def iterate(params,y,X,i,m,v,num_samples):
     b_1 = 0.9
     b_2 = 0.999
     e = 10e-8
-    N = 2
+    N = 10
     g = gradient_lower_bound(params,y,X,num_samples,N)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
@@ -24,7 +24,7 @@ def generate_data(beta,tau,n,num_times):
     alpha = np.random.normal(0,tau,n)
     alpha = np.reshape(np.tile(alpha,num_times),(num_times,n))
     alpha = np.transpose(alpha)
-    P = logistic(beta[0]+np.dot(X,beta[1:])+alpha)
+    P = logistic(beta[0]+np.dot(X,beta[1:])+0*alpha)
     y = np.random.binomial(1,P)
     return X,y
 
@@ -52,12 +52,18 @@ def expectation(params,y,X,eps,N,z,u):
     for j in range(np.shape(eps)[0]):
         beta = mu+Sigma*eps[j,:]
         E+=log_likelihood(beta,y,X,z[j*(n*N):(j+1)*(n*N)],u[j*(n*N):(j+1)*(n*N)],tauParams,N)
-    return E/len(beta)
+    return E/np.shape(eps)[0]
 
 def KL_two_gaussians(params):
     mu = params[0:(len(params)-2)/2]
     Sigma = np.exp(params[(len(params)-2)/2:-2])
-    return -1/2*np.sum(1+np.log(Sigma**2)-mu**2-Sigma**2)
+    d = len(mu)
+    muPrior = np.zeros(d)
+    sigmaPrior = np.ones(d)*50
+    return np.sum(np.log(sigmaPrior/Sigma)+(Sigma**2+(mu-muPrior)**2)/(2*(sigmaPrior**2))-1/2)
+#mu1 is variational
+#mu2 is prior
+    #-1/2*np.sum(1+np.log(Sigma**2)-mu**2-Sigma**2)
 
 def KL_two_inv_lognormal(params,u):
     muPrior = np.log(1)
@@ -72,9 +78,10 @@ def KL_two_inv_lognormal(params,u):
 def log_likelihood(beta, y,X,z,u,tauParams,N):
     ll = 0
     #generate N*n particles
-    inv_lognormal = 1./generate_lognormal(tauParams,u)
-    alpha = np.sqrt(inv_lognormal)*z
-    print np.mean(np.sqrt(inv_lognormal))
+#    inv_lognormal = 1./generate_lognormal(tauParams,u)
+#    alpha = np.sqrt(inv_lognormal)*z
+#    print np.mean(np.sqrt(inv_lognormal))
+    alpha = np.zeros(len(z))
     #iterate over participants
     count = 0
     for i in range(y.shape[0]):
@@ -135,7 +142,7 @@ if __name__=='__main__':
         mu = params[0:(len(params)-2)/2]
         print mu
         Sigma = params[(len(params)-2)/2:-2]
-        print np.exp(Sigma)
+        #print np.exp(Sigma)
         if np.isnan(params).any():
             params = np.random.normal(0,1,2*d+2)
             m = np.zeros(2*d+2)
