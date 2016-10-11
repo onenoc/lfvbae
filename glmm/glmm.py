@@ -15,16 +15,17 @@ def iterate(params,y,X,i,m,v,num_samples):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = (num_samples**(1./2))
-    params = params+a*m_h/(np.sqrt(v_h)+e)
+    params = params+a*m_h/(np.sqrt(v_h)+e)*0.2
     return params,m,v
 
-def generate_data(beta,tau,n,num_times):
+def generate_data(beta,tau2,n,num_times):
     num_features = len(beta)-1
-    X = np.random.uniform(-2,2,(n,num_times,num_features))
+    tau = np.sqrt(tau2)
+    X = np.random.uniform(0,1,(n,num_times,num_features))
     alpha = np.random.normal(0,tau,n)
     alpha = np.reshape(np.tile(alpha,num_times),(num_times,n))
     alpha = np.transpose(alpha)
-    P = logistic(beta[0]+np.dot(X,beta[1:])+0*alpha)
+    P = logistic(beta[0]+np.dot(X,beta[1:])+alpha)
     y = np.random.binomial(1,P)
     return X,y
 
@@ -41,7 +42,7 @@ def lower_bound(params,y,X,eps,N,z,u):
     E = expectation(params,y,X,eps,N,z,u)
     tauParams = params[-2:]
     KL = KL_two_gaussians(params)#+KL_two_inv_lognormal(tauParams,u[:N])
-    return E#-KL
+    return E-KL
 
 def expectation(params,y,X,eps,N,z,u):
     mu = params[0:(len(params)-2)/2]
@@ -61,9 +62,6 @@ def KL_two_gaussians(params):
     muPrior = np.zeros(d)
     sigmaPrior = np.ones(d)*50
     return np.sum(np.log(sigmaPrior/Sigma)+(Sigma**2+(mu-muPrior)**2)/(2*(sigmaPrior**2))-1/2)
-#mu1 is variational
-#mu2 is prior
-    #-1/2*np.sum(1+np.log(Sigma**2)-mu**2-Sigma**2)
 
 def KL_two_inv_lognormal(params,u):
     muPrior = np.log(1)
@@ -78,16 +76,22 @@ def KL_two_inv_lognormal(params,u):
 def log_likelihood(beta, y,X,z,u,tauParams,N):
     ll = 0
     #generate N*n particles
-#    inv_lognormal = 1./generate_lognormal(tauParams,u)
-#    alpha = np.sqrt(inv_lognormal)*z
-#    print np.mean(np.sqrt(inv_lognormal))
-    alpha = np.zeros(len(z))
-    #iterate over participants
+    inv_lognormal = 1./generate_lognormal(tauParams,u)
+    alpha = np.sqrt(inv_lognormal)*z
+    print np.mean(inv_lognormal)
+    #alpha = tauParams[0]+np.exp(tauParams[1])*z
     count = 0
+    ll = 0
+    #iterate over participants
     for i in range(y.shape[0]):
+        #iterate over particles
+        l_individual = 0
         for j in range(N):
-            ll+=log_likelihood_particle(beta,y[i,:],X[i,:,:],alpha[count])
+            #this is wrong, sums and logs are in WRONG PLACE, need to divide by N at some point
+            l_individual += likelihood_particle(beta,y[i,:],X[i,:,:],alpha[count])
             count += 1
+        l_individual = l_individual/N
+        ll += np.log(l_individual)
     return ll
 
 #Correct
@@ -105,12 +109,10 @@ def lognormal_pdf(theta,params):
     x=theta
     return np.exp(-(np.log(x)-mu)**2/(2*(sigma**2)))/(x*sigma*np.sqrt(2*np.pi))
 
-def log_likelihood_particle(beta, y,X,alpha_i):
-    log_likelihood = 0
+def likelihood_particle(beta, y,X,alpha_i):
     pi = get_pi(beta,X,alpha_i)
     likelihood = bernoulli(pi,y)
-    log_likelihood = np.sum(np.log(likelihood))
-    return log_likelihood
+    return np.prod(likelihood)
 
 def likelihood_i(beta,yi,xi,alpha_i):
     pi = get_pi(beta,xi,alpha_i)
@@ -127,21 +129,22 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    beta = np.array([-2,10])
+    beta = np.array([-1.5,2.5])
     d = len(beta)
     params = np.random.normal(0,1,2*d+2)
 #    params[-2] = 0
 #    params[-1] = 0.1
     #generate_data(beta,tau,n,num_times)
-    X,y = generate_data(beta,1.5,50,4)#537
+    X,y = generate_data(beta,1.5,200,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
     for i in range(150):
-        params,m,v =iterate(params,y,X,i,m,v,1)
+        params,m,v =iterate(params,y,X,i,m,v,10)
         mu = params[0:(len(params)-2)/2]
         print mu
         Sigma = params[(len(params)-2)/2:-2]
+        print np.exp(params[-1])
         #print np.exp(Sigma)
         if np.isnan(params).any():
             params = np.random.normal(0,1,2*d+2)
