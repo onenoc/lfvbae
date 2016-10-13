@@ -9,14 +9,19 @@ def iterate(params,y,X,i,m,v,num_samples):
     b_2 = 0.999
     e = 10e-8
     N = 10
-    g = gradient_lower_bound(params,y,X,num_samples,N)
+    n = np.shape(y)[0]
+    u = np.random.normal(0,1,num_samples*N*n)
+    z = np.random.normal(0,1,num_samples*N*n)
+    eps = np.random.normal(0,1,(num_samples,np.shape(X)[-1]+1))
+    g = gradient_lower_bound(params,y,X,num_samples,eps,u,z,N)
     m = b_1*m+(1-b_1)*g
     v = b_2*v+(1-b_2)*(g**2)
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = (num_samples**(1./2))
     params = params+a*m_h/(np.sqrt(v_h)+e)*0.05
-    return params,m,v
+    LB = lower_bound(params,y,X,eps,N,z,u)
+    return params,m,v,LB
 
 def generate_data(beta,tau2,n,num_times):
     num_features = len(beta)-1
@@ -30,11 +35,7 @@ def generate_data(beta,tau2,n,num_times):
     y = np.random.binomial(1,P)
     return X,y, varAlpha
 
-def gradient_lower_bound(params,y,X,num_samples,N):
-    eps = np.random.normal(0,1,(num_samples,np.shape(X)[-1]+1))
-    n = np.shape(y)[0]
-    u = np.random.normal(0,1,num_samples*N*n)
-    z = np.random.normal(0,1,num_samples*N*n)
+def gradient_lower_bound(params,y,X,num_samples,eps,u,z,N):
     gradient_lower_bound = grad(lower_bound)
     g = gradient_lower_bound(params,y,X,eps,N,z,u)
     return g
@@ -137,24 +138,41 @@ if __name__=='__main__':
 #    params[-2] = 0
 #    params[-1] = 0.1
     #generate_data(beta,tau,n,num_times)
-    X,y,varAlpha = generate_data(beta,1.5,500,4)#537
+    X,y,varAlpha = generate_data(beta,1.5,2000,5)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
-    for i in range(2000):
+    iterating = 1
+    K = 10
+    lower_bounds = []
+    convergence = 5e-3
+    i=0
+    while iterating==1:
         print i
-        params,m,v =iterate(params,y,X,i,m,v,10)
+        params,m,v,LB =iterate(params,y,X,i,m,v,10)
         mu = params[0:(len(params)-2)/2]
         print mu
         Sigma = params[(len(params)-2)/2:-2]
-        print np.exp(params[-1])
-        #print np.exp(Sigma)
         if np.isnan(params).any():
-            params = np.random.normal(0,1,2*d+2)
+            params = np.zeros(2*d+2)
             m = np.zeros(2*d+2)
             v = np.zeros(2*d+2)
         print params
-        print varAlpha
+        print 'lower bound %f' % (LB)
+        lower_bounds.append(LB)
+        if len(lower_bounds)>K+1:
+            lb2 = np.mean(np.array(lower_bounds[-K:]))
+            lb1 = np.mean(np.array(lower_bounds[-K-1:-1]))
+            print 'diff'
+            print abs(lb2-lb1)
+            if abs(lb2-lb1)<convergence:
+                iterating = 0
+        i+=1
+    f=open('LBs.txt')
+    for item in LB:
+        f.write(item+'\n')
+    f.write(params)
+    f.close()
 #print 1/np.exp(params[-2])
 #    eps = np.random.rand(50)
 #    print lower_bound(params,y,X,eps)
