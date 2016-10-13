@@ -15,7 +15,7 @@ def iterate(params,y,X,i,m,v,num_samples):
     m_h = m/(1-(b_1**(i+1)))
     v_h = v/(1-(b_2**(i+1)))
     a = (num_samples**(1./2))
-    params = params+a*m_h/(np.sqrt(v_h)+e)*0.2
+    params = params+a*m_h/(np.sqrt(v_h)+e)*0.05
     return params,m,v
 
 def generate_data(beta,tau2,n,num_times):
@@ -25,9 +25,10 @@ def generate_data(beta,tau2,n,num_times):
     alpha = np.random.normal(0,tau,n)
     alpha = np.reshape(np.tile(alpha,num_times),(num_times,n))
     alpha = np.transpose(alpha)
+    varAlpha = np.var(alpha)
     P = logistic(beta[0]+np.dot(X,beta[1:])+alpha)
     y = np.random.binomial(1,P)
-    return X,y
+    return X,y, varAlpha
 
 def gradient_lower_bound(params,y,X,num_samples,N):
     eps = np.random.normal(0,1,(num_samples,np.shape(X)[-1]+1))
@@ -41,7 +42,7 @@ def gradient_lower_bound(params,y,X,num_samples,N):
 def lower_bound(params,y,X,eps,N,z,u):
     E = expectation(params,y,X,eps,N,z,u)
     tauParams = params[-2:]
-    KL = KL_two_gaussians(params)#+KL_two_inv_lognormal(tauParams,u[:N])
+    KL = KL_two_gaussians(params)+KL_two_inv_lognormal(tauParams,u[:N])
     return E-KL
 
 def expectation(params,y,X,eps,N,z,u):
@@ -65,7 +66,7 @@ def KL_two_gaussians(params):
 
 def KL_two_inv_lognormal(params,u):
     muPrior = np.log(1)
-    sigmaPrior = 0.1
+    sigmaPrior = 5
     q_samples = 1/generate_lognormal(params,u)
 #    print params
 #    print muPrior, sigmaPrior
@@ -132,14 +133,16 @@ if __name__=='__main__':
     beta = np.array([-1.5,2.5])
     d = len(beta)
     params = np.random.normal(0,1,2*d+2)
+    params = np.zeros(2*d+2)
 #    params[-2] = 0
 #    params[-1] = 0.1
     #generate_data(beta,tau,n,num_times)
-    X,y = generate_data(beta,1.5,200,4)#537
+    X,y,varAlpha = generate_data(beta,1.5,500,4)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
-    for i in range(150):
+    for i in range(2000):
+        print i
         params,m,v =iterate(params,y,X,i,m,v,10)
         mu = params[0:(len(params)-2)/2]
         print mu
@@ -150,6 +153,8 @@ if __name__=='__main__':
             params = np.random.normal(0,1,2*d+2)
             m = np.zeros(2*d+2)
             v = np.zeros(2*d+2)
+        print params
+        print varAlpha
 #print 1/np.exp(params[-2])
 #    eps = np.random.rand(50)
 #    print lower_bound(params,y,X,eps)
