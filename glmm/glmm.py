@@ -89,7 +89,6 @@ def log_likelihood(beta, y,X,z,u,tauParams,N):
         #iterate over particles
         l_individual = 0
         for j in range(N):
-            #this is wrong, sums and logs are in WRONG PLACE, need to divide by N at some point
             l_individual += likelihood_particle(beta,y[i,:],X[i,:,:],alpha[count])
             count += 1
         l_individual = l_individual/N
@@ -133,23 +132,22 @@ if __name__=='__main__':
     #create some data with beta = 2
     beta = np.array([-1.5,2.5])
     d = len(beta)
-    params = np.random.normal(0,1,2*d+2)
     params = np.zeros(2*d+2)
 #    params[-2] = 0
 #    params[-1] = 0.1
     #generate_data(beta,tau,n,num_times)
-    X,y,varAlpha = generate_data(beta,1.5,2000,5)#537
+    X,y,varAlpha = generate_data(beta,1,500,5)#537
     #test likelihood for several beta values, beta = 2 should give high likelihood
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
     iterating = 1
     K = 10
     lower_bounds = []
-    convergence = 5e-3
+    convergence = 1e-3
     i=0
     while iterating==1:
         print i
-        params,m,v,LB =iterate(params,y,X,i,m,v,10)
+        params,m,v,LB =iterate(params,y,X,i,m,v,5)
         mu = params[0:(len(params)-2)/2]
         print mu
         Sigma = params[(len(params)-2)/2:-2]
@@ -168,7 +166,7 @@ if __name__=='__main__':
             if abs(lb2-lb1)<convergence:
                 iterating = 0
         i+=1
-    f=open('LBs.txt')
+    f=open('LBs.txt','w')
     for item in LB:
         f.write(item+'\n')
     f.write(params)
