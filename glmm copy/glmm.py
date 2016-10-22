@@ -24,7 +24,7 @@ def generate_data(beta,tau2,n,num_times):
     alpha = np.random.normal(0,tau,n)
     alpha = np.reshape(np.tile(alpha,num_times),(num_times,n))
     alpha = np.transpose(alpha)
-    P = logistic(beta[0]+np.dot(X,beta[1:])+alpha)
+    P = logistic(beta[0]+np.dot(X,beta[1:])+0*alpha)
     y = np.random.binomial(1,P)
     return X,y
 
@@ -40,7 +40,7 @@ def gradient_lower_bound(params,y,X,num_samples,N):
 def lower_bound(params,y,X,eps,N,z,u):
     E = expectation(params,y,X,eps,N,z,u)
     tauParams = params[-2:]
-    KL = KL_two_gaussians(params)+KL_two_inv_lognormal(tauParams,u[:N])
+    KL = KL_two_gaussians(params)#+KL_two_inv_lognormal(tauParams,u[:N])
     return E-KL
 
 def expectation(params,y,X,eps,N,z,u):
@@ -67,6 +67,7 @@ def KL_two_inv_lognormal(params,u):
     muPrior = np.log(2)
     sigmaPrior = 0.1
     q_samples = 1/generate_lognormal(params,u)
+#    print 1/lognormal_pdf(q_samples,np.array([muPrior,sigmaPrior]))
     return np.sum(np.log(lognormal_pdf(q_samples,np.array([muPrior,sigmaPrior]))/lognormal_pdf(q_samples,params)))/len(u)
 
 
@@ -77,7 +78,7 @@ def log_likelihood(beta, y,X,z,u,tauParams,N):
     if np.isnan(inv_lognormal).any():
         print 'some nans'
         print 5/0
-    alpha = inv_lognormal*z
+    alpha = np.zeros(len(inv_lognormal))#np.sqrt(inv_lognormal)*z
     print 'mean inv lognormal'
     print np.mean(inv_lognormal)
     count = 0
@@ -108,11 +109,10 @@ def lognormal_pdf(theta,params):
 def likelihood_individual(beta,y,X,alpha):
     N = len(alpha)
     t = len(y)
-    #get success probabilities, CORRECT
+    #get success probabilities
     p = get_pi(beta,X,alpha)
     #do bernoulli to get observation probabilities
     y = np.tile(y,len(p)/len(y))
-#    y = np.repeat(y,len(p)/len(y))
     likelihood = bernoulli(p,y)
     #handle products (based on number of time steps, multiply every t elements together)
     likelihood = np.reshape(likelihood, (t,len(likelihood)/t))
@@ -125,8 +125,7 @@ def get_pi(beta,X,alpha):
     linear_pred = np.dot(X,beta[1:])
     linear_pred = np.tile(linear_pred,len(alpha))
     alpha = np.repeat(alpha,len(np.dot(X,beta[1:])))
-    beta0 = np.ones(len(alpha))*beta[0]
-    return logistic(beta[0]+linear_pred+alpha)
+    return logistic(beta[0]+linear_pred+0*alpha)
 
 def bernoulli(pi, yi):
     return (pi**yi)*((1-pi)**(1-yi))
@@ -136,9 +135,9 @@ def logistic(x):
 
 if __name__=='__main__':
     #create some data with beta = 2
-    beta = np.array([-1.5,5])
+    beta = np.array([-1.5,2])
     d = len(beta)
-    params = np.zeros(2*d+2)
+    params = np.random.normal(0,1,2*d+2)
 #    generate_data(beta,tau2,n,num_times)
     params[-2:] = 0
     X,y = generate_data(beta,1.5,500,4)#537
@@ -146,13 +145,13 @@ if __name__=='__main__':
     m = np.zeros(2*d+2)
     v = np.zeros(2*d+2)
     for i in range(150):
-        params,m,v =iterate(params,y,X,i,m,v,1)
+        params,m,v =iterate(params,y,X,i,m,v,5)
         mu = params[0:(len(params)-2)/2]
         print mu
         Sigma = params[(len(params)-2)/2:-2]
         #print np.exp(Sigma)
         if np.isnan(params).any():
-            params = np.zeros(2*d+2)
+            params = np.random.normal(0,1,2*d+2)
             m = np.zeros(2*d+2)
             v = np.zeros(2*d+2)
 #print 1/np.exp(params[-2])
